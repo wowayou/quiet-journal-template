@@ -1,0 +1,170 @@
+# Sveltia CMS 配置（可替换的编辑器适配层，见 docs/EDITING.md）。
+# 用模板创建自己的仓库后，只需改 backend.repo。字段说明：https://sveltiacms.app/en/docs
+backend:
+  name: github
+  repo: OWNER/REPO          # ← 改成你的私有仓库，例如 yourname/life-journal
+  branch: main
+  # 只允许「访问令牌」登录：Fine-grained PAT，只授权这一个仓库的 Contents 读写
+  auth_methods: [token]
+  commit_messages:
+    create: "add {{collection}}: {{slug}}"
+    update: "update {{collection}}: {{slug}}"
+    delete: "remove {{collection}}: {{slug}}"
+    uploadMedia: "upload {{path}}"
+    deleteMedia: "remove {{path}}"
+
+# ── 保存方式（二选一，详见 docs/EDITING.md）────────────────────────────
+# simple（默认，单人写作）：保存直接提交到 main；是否公开由文章的「草稿」开关决定。
+#   令牌权限：Contents 读写。
+# editorial_workflow（审核流）：保存进入 cms/* 分支和 PR，点「发布」才合并到 main。
+#   切换时同时把下方 draft 字段的 default 改为 false，令牌另需 Pull requests 读写。
+publish_mode: simple
+
+# 媒体库里直接上传的共享图片放 assets/media，正文用 /media/文件名 引用；
+# 只有被已发布文章引用的图片才会发布。
+media_folder: assets/media
+public_folder: /media
+
+media_libraries:
+  default:
+    config:
+      max_file_size: 26214400   # 25 MiB：手机原图上限；上传时会被压缩
+      slugify_filename: true    # 文件名转为 ASCII，避免中文地名/人名进入文件名
+      transformations:
+        # 浏览器内处理：HEIC/JPEG/PNG → WebP，最长边 2048，去除 EXIF
+        raster_image:
+          format: webp
+          quality: 85
+          width: 2048
+          height: 2048
+
+slug:
+  encoding: ascii
+  clean_accents: true
+  timezone: local
+
+collections:
+  - name: posts
+    label: 文章
+    label_singular: 文章
+    folder: content/posts
+    # 每篇一个文件夹，名字是稳定链接：日期 + 随机串，与标题无关
+    path: "{{slug}}/index"
+    slug: "{{year}}{{month}}{{day}}-{{uuid_shorter}}"
+    media_folder: ""            # 正文里插入的图片放在文章自己的文件夹
+    public_folder: ""
+    create: true
+    format: yaml-frontmatter
+    summary: "{{date | date('YYYY-MM-DD')}} · {{title}}{{draft | ternary(' · 草稿', '')}}"
+    sortable_fields:
+      fields: [date, title]
+      default: { field: date, direction: descending }
+    view_filters:
+      filters:
+        - { name: drafts, label: 草稿, field: draft, pattern: true }
+        - { name: photos, label: 图文, field: kind, pattern: photo }
+    fields:
+      - { name: title, label: 标题, required: false, hint: 可以不写。没有标题时用正文开头代替。 }
+      - { name: date, label: 时间, widget: datetime, default: "{{now}}", input_timezone: Asia/Shanghai, hint: 网站上只显示日期。 }
+      - name: kind
+        label: 类型
+        widget: select
+        default: note
+        options:
+          - { label: 短记, value: note }
+          - { label: 随笔, value: story }
+          - { label: 图文（图片更宽）, value: photo }
+      - name: body
+        label: 正文
+        widget: markdown
+        required: false
+        hint: 图片会自动转为 WebP 并去除拍摄信息。同一段里连续放多张图会并排显示。
+      - { name: summary, label: 摘要, widget: text, required: false, hint: 可选。列表里显示的一两句话。 }
+      - { name: featured, label: 精选, widget: boolean, default: false, required: false, hint: 显示在首页「精选」（最多 3 篇） }
+      - name: draft
+        label: 草稿（不公开）
+        widget: boolean
+        default: true     # 审核流模式下改为 false
+        hint: 写完关掉再保存，就会发布。想撤下已发布的文章，打开它再保存。
+
+  - name: settings
+    label: 站点设置
+    files:
+      - name: site
+        label: 网站信息
+        file: data/site.yaml
+        fields:
+          - { name: title, label: 网站名 }
+          - { name: description, label: 一句话简介, required: false }
+          - { name: author, label: 署名, hint: 显示在页脚和 RSS，不必用真名 }
+          - name: accent
+            label: 强调色
+            widget: select
+            default: orange
+            options:
+              - { label: 橙, value: orange }
+              - { label: 蓝, value: blue }
+              - { label: 青绿, value: teal }
+              - { label: 玫红, value: rose }
+              - { label: 紫, value: violet }
+          - name: theme
+            label: 默认深浅色
+            widget: select
+            default: auto
+            options:
+              - { label: 跟随系统, value: auto }
+              - { label: 浅色, value: light }
+              - { label: 深色, value: dark }
+          - name: hero
+            label: 首页大标题
+            widget: object
+            fields:
+              - { name: title, label: 标题, required: false }
+              - { name: text, label: 介绍, widget: markdown, required: false }
+          - name: nav
+            label: 导航
+            widget: list
+            fields:
+              - { name: label, label: 名称 }
+              - { name: url, label: 链接, hint: 站内页面写 /archive/ 这样的路径 }
+          - name: social
+            label: 社交链接
+            widget: list
+            required: false
+            fields:
+              - { name: icon, label: 图标, widget: select, options: [github, x, mastodon, telegram, bilibili, douban, sinaweibo, instagram, zhihu, xiaohongshu, mail, link, rss] }
+              - { name: url, label: 链接 }
+              - { name: label, label: 名称, required: false }
+          - name: footer
+            label: 页脚
+            widget: object
+            fields:
+              - { name: quote, label: 一句话, required: false }
+              - { name: content_license, label: 版权声明, required: false }
+              - { name: show_built_with, label: 显示 Built with Hugo, widget: boolean, default: true }
+              - { name: show_rss, label: 显示 RSS 图标, widget: boolean, default: true }
+              - { name: back_to_top, label: 回到顶部, widget: boolean, default: true }
+          - { name: summary_length, label: 摘要字数, widget: number, value_type: int, default: 100 }
+      - name: links
+        label: 友链
+        file: data/links.yaml
+        fields:
+          - name: links
+            label: 友链
+            label_singular: 友链
+            widget: list
+            root: true
+            fields:
+              - { name: name, label: 名称 }
+              - { name: url, label: 网址 }
+              - { name: note, label: 一句话介绍, required: false }
+
+  - name: pages
+    label: 页面
+    files:
+      - name: about
+        label: 关于
+        file: content/about.md
+        fields:
+          - { name: title, label: 标题 }
+          - { name: body, label: 正文, widget: markdown }

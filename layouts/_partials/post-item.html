@@ -1,0 +1,7 @@
+{{- /* 文章列表项（首页、归档共用）：强调色标题 · 日期 · 摘要。参数：页面。 */ -}}
+{{- $p := . -}}
+<li class="post-item">
+  <h3 class="post-item__title"><a href="{{ $p.RelPermalink }}">{{ partial "title.html" $p }}</a></h3>
+  {{ partial "post-meta.html" (dict "page" $p "class" "post-item__meta") }}
+  <p class="post-item__summary">{{ partial "summary.html" (dict "page" $p "length" 100) }}</p>
+</li>

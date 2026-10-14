@@ -1,0 +1,7 @@
+{{- /* 日期行：日历图标 + 日期；图文文章加照片数。参数：page、class。 */ -}}
+{{- $p := .page -}}
+<p class="{{ .class | default "post-meta" }}">
+  {{- partial "icon.html" (dict "name" "calendar" "size" 16) }}
+  {{- partial "date.html" $p }}
+  {{- if eq $p.Params.kind "photo" }}{{ with len (partial "post-images.html" $p) }}<span aria-hidden="true">·</span><span>{{ . }} 张照片</span>{{ end }}{{ end }}
+</p>

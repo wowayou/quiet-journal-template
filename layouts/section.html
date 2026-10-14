@@ -1,0 +1,6 @@
+{{- define "main" }}
+<header class="page-header">
+  <h1 class="page-header__title">{{ .Title | default "全部文章" }}</h1>
+</header>
+{{- partial "archive-list.html" .RegularPages }}
+{{- end }}

@@ -1,0 +1,5 @@
+{{- /* 只显示日期，不显示具体时间，避免暴露作息。统一换算到 params.timeZone，即使 front matter 写的是 UTC（Z）也按本地日期显示。 */ -}}
+{{- if not .Date.IsZero -}}
+{{- $d := time.In (site.Params.timeZone | default "UTC") .Date -}}
+<time datetime="{{ $d.Format "2006-01-02" }}">{{ $d.Format "2006年1月2日" }}</time>
+{{- end -}}

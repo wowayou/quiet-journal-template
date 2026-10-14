@@ -1,0 +1,24 @@
+{{- define "main" }}
+{{- $c := hugo.Data.credits }}
+<header class="page-header">
+  <h1 class="page-header__title">{{ .Title }}</h1>
+  {{- with .Content }}<div class="page-header__desc prose">{{ . }}</div>{{ end }}
+</header>
+{{- range $g := slice (dict "t" "软件" "i" $c.software) (dict "t" "字体" "i" $c.fonts) (dict "t" "图片与图标" "i" $c.assets) (dict "t" "参考与灵感" "i" $c.inspirations) }}
+{{- with $g.i }}
+<section class="credits">
+  <h2>{{ $g.t }}</h2>
+  <ul class="plain-list">
+    {{- range . }}
+    <li>
+      {{- if .url }}<a class="plain-list__name" href="{{ .url }}" rel="noopener">{{ .name }}</a>{{ else }}<strong>{{ .name }}</strong>{{ end }}
+      {{- with .license }}<span class="plain-list__tag">{{ . }}</span>{{ end }}
+      {{- with .role }}<p class="plain-list__note">{{ . }}</p>{{ end }}
+      {{- with .note }}<p class="plain-list__note">{{ . }}</p>{{ end }}
+    </li>
+    {{- end }}
+  </ul>
+</section>
+{{- end }}
+{{- end }}
+{{- end }}

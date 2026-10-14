@@ -1,0 +1,17 @@
+# Hugo 构建产物与缓存
+/public/
+/resources/_gen/
+.hugo_build.lock
+
+# 依赖与本地环境
+node_modules/
+.wrangler/
+.dev.vars
+.env
+.env.*
+*.local
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*:Zone.Identifier

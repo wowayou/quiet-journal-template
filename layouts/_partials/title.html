@@ -1,0 +1,11 @@
+{{- /* 返回页面显示标题：有 title 用 title；随笔无标题时取正文开头；再退回日期。 */ -}}
+{{- $t := .Title -}}
+{{- if not $t -}}
+  {{- $text := .Plain | strings.TrimSpace -}}
+  {{- if $text -}}
+    {{- $t = $text | truncate 24 -}}
+  {{- else if not .Date.IsZero -}}
+    {{- $t = .Date.Format "2006年1月2日" -}}
+  {{- end -}}
+{{- end -}}
+{{- return $t -}}

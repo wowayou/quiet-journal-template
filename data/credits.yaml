@@ -1,0 +1,38 @@
+# 只列「真实采用」的项目与资源。新增依赖时同步更新本文件与 THIRD_PARTY_NOTICES.md。
+software:
+  - name: Hugo
+    role: 静态网站生成器（构建时使用，不随网站分发代码）
+    license: Apache-2.0
+    url: https://gohugo.io/
+    source: https://github.com/gohugoio/hugo
+
+fonts:
+  - name: Google Sans Code
+    role: 拉丁字母与数字的字体（随站点自托管，约 63 KB）；中文使用访客设备的系统字体
+    license: SIL OFL 1.1
+    url: https://github.com/googlefonts/googlesans-code
+    note: 网页文件来自 @fontsource-variable/google-sans-code 5.3.2。
+
+# 视觉素材：本模板的示例图片为程序生成的抽象渐变图，无第三方素材。
+assets:
+  - name: 品牌图标
+    role: 页首与页脚的社交图标（GitHub、X 等）
+    license: CC0-1.0
+    url: https://simpleicons.org/
+    note: 来自 simple-icons 16.35.0；图标所代表的商标归各自所有者。
+  - name: 示例图片与图标（程序生成）
+    role: 示例文章配图、favicon
+    license: CC0-1.0
+    note: 本模板作者为示例程序生成，非照片，无元数据。
+
+# 灵感来源：记录「受哪个站点的哪种通用做法启发」，并附链接。
+# 不复制其文字、摄影或独创视觉元素。没有就保持为空。
+inspirations:
+  - name: AstroPaper
+    url: https://github.com/satnaing/astro-paper
+    role: 整体风格的主要参考：首页结构（大标题 + 精选 + 最近）、单栏版式、等宽字体、强调色标题列表、虚线链接与波浪线导航。
+    note: MIT 许可；本模板未复制其代码，样式为独立编写。
+  - name: StarFoxRyan
+    url: https://blog.ryanstarfox.top/
+    role: 点图查看大图的交互方式。
+    note: 代码与样式为本模板独立编写；原站与本模板无关联。

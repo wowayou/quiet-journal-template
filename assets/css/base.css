@@ -1,0 +1,142 @@
+/* 基础排版：元素默认样式。只引用 tokens.css 的变量。 */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scrollbar-gutter: stable;
+  scroll-padding-top: calc(var(--header-height) + var(--space-4));   /* 锚点不被吸顶页头挡住 */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  @view-transition { navigation: auto; }   /* 站内跳转时淡入淡出；不支持的浏览器直接跳转 */
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--line-height);
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  line-height: 1.3;
+  font-weight: 650;
+  text-wrap: balance;
+}
+
+p, ul, ol, blockquote, pre, table, figure {
+  margin: 0;
+}
+
+/* 链接：虚线下划线，悬停变强调色 */
+a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 0.28em;
+  transition: color var(--motion-fast) ease, text-decoration-color var(--motion-fast) ease;
+}
+
+a:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+
+:focus-visible {
+  outline: 2px dashed var(--accent);
+  outline-offset: 3px;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+code, pre, kbd {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: var(--space-6) 0;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- 正文 ---------- */
+.prose {
+  line-height: var(--prose-line-height);
+}
+
+.prose > * + * { margin-top: 1.1em; }
+.prose h2 { font-size: var(--text-xl); margin-top: 2em; }
+.prose h3 { font-size: var(--text-lg); margin-top: 1.7em; }
+.prose h2 + *, .prose h3 + * { margin-top: 0.6em; }
+
+.prose a { text-decoration-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+
+.prose ul, .prose ol { padding-left: 1.4em; }
+.prose li + li { margin-top: 0.3em; }
+.prose li::marker { color: var(--muted); }
+
+.prose blockquote {
+  padding-left: var(--space-4);
+  border-left: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--muted);
+  font-style: italic;
+}
+
+.prose :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+}
+
+.prose pre {
+  padding: var(--space-4);
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  background: var(--raised);
+  line-height: 1.6;
+}
+
+.prose table { border-collapse: collapse; display: block; overflow-x: auto; }
+.prose th, .prose td { padding: 0.4em 0.8em; border-bottom: 1px solid var(--line); text-align: left; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

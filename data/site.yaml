@@ -1,0 +1,40 @@
+# 站点设置：日常修改只需改这个文件（也可在 CMS「站点设置」中编辑）。
+title: Quiet Journal
+description: 一本安静的生活手记。
+author: 示例作者           # 显示在页脚与 RSS；不必用真名
+
+# 深浅色默认值：auto（跟随系统）| light | dark。访客的选择只保存在其浏览器中。
+theme: auto
+# 强调色（标题、链接、图标）：orange 橙 | blue 蓝 | teal 青绿 | rose 玫红 | violet 紫
+accent: orange
+
+# 首页大标题与介绍（介绍支持 Markdown）
+hero:
+  title: 你好呀
+  text: |
+    这里记录一些日常：想到的、看到的、拍到的。
+
+    按时间看 [全部文章](/archive/)，或者读一读 [关于](/about/)。
+
+nav:
+  - { label: 首页, url: / }
+  - { label: 归档, url: /archive/ }
+  - { label: 关于, url: /about/ }
+  - { label: 友链, url: /links/ }
+  - { label: 致谢, url: /credits/ }
+
+# 社交链接（首页与页脚的图标）。icon 可用：github x mastodon telegram bilibili douban
+# sinaweibo instagram zhihu xiaohongshu mail link rss。以下为占位示例，用前请替换或删除。
+social:
+  - { icon: github, url: "https://github.com/your-name", label: GitHub }
+  - { icon: mail, url: "mailto:hello@example.com", label: 邮件 }
+
+footer:
+  quote: 想记录的时候，就记下来。   # 页脚的一句话，可空
+  # 个人文章与照片的版权声明（与模板代码的 MIT 许可证相互独立）
+  content_license: 文字与照片版权所有，未经许可请勿转载。
+  show_built_with: true
+  show_rss: true
+  back_to_top: true
+
+summary_length: 100        # 列表摘要字数

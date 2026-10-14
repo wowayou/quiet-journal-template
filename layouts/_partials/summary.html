@@ -1,0 +1,5 @@
+{{- /* 纯文本摘要：优先 front matter 的 summary，其次正文开头。参数 page、length。 */ -}}
+{{- $p := .page -}}
+{{- $s := $p.Params.summary | default "" | strings.TrimSpace -}}
+{{- if not $s }}{{ $s = $p.Plain | strings.TrimSpace }}{{ end -}}
+{{- return ($s | truncate (.length | default 120)) -}}

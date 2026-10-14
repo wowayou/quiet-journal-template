@@ -1,0 +1,74 @@
+{{- /*
+  渲染一张图片。所有图片（正文、封面）都经过这里。
+  参数：
+    page     所属页面
+    src      图片引用（交给 media/resolve.html 解析）
+    alt      替代文本；装饰性图片传空字符串
+    caption  图注（可空）
+    context  "block" 独立大图 | "inline" 同一段落内的多图
+    eager    true 时优先加载（首屏图片）
+
+  本地图片一律由 Hugo 重新编码为 WebP（包括原尺寸版本），原文件不发布：
+  这是 EXIF/GPS 的第二道清除，第一道在 CMS 上传时。
+*/ -}}
+{{- $m := partial "media/resolve.html" (dict "page" .page "src" .src) -}}
+{{- $cfg := site.Params.media -}}
+{{- $ctx := .context | default "block" -}}
+{{- $eager := .eager | default false -}}
+{{- $alt := .alt | default "" -}}
+{{- /* sizes：告诉浏览器图片大约显示多宽，手机据此只下载小尺寸版本 */ -}}
+{{- $wide := eq .page.Params.kind "photo" -}}
+{{- $sizes := cond $wide "(min-width: 66rem) 64rem, 100vw" "(min-width: 44rem) 42rem, 100vw" -}}
+{{- if eq $ctx "inline" }}{{ $sizes = cond $wide "(min-width: 66rem) 32rem, 50vw" "(min-width: 44rem) 21rem, 50vw" }}{{ end -}}
+
+{{- $src := "" -}}
+{{- $srcset := "" -}}
+{{- $w := 0 -}}
+{{- $h := 0 -}}
+{{- if eq $m.kind "resource" -}}
+  {{- $r := $m.resource -}}
+  {{- $q := $cfg.quality | default 82 -}}
+  {{- $widths := $cfg.widths | default (slice 640 1024 1600) -}}
+  {{- $maxW := index (last 1 $widths) 0 -}}
+  {{- $set := slice -}}
+  {{- $largest := false -}}
+  {{- range $widths -}}
+    {{- if lt . $r.Width -}}
+      {{- $largest = $r.Resize (printf "%dx webp q%d" . $q) -}}
+      {{- $set = $set | append (printf "%s %dw" $largest.RelPermalink $largest.Width) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if le $r.Width $maxW -}}
+    {{- $largest = $r.Process (printf "webp q%d" $q) -}}
+    {{- $set = $set | append (printf "%s %dw" $largest.RelPermalink $largest.Width) -}}
+  {{- end -}}
+  {{- $src = $largest.RelPermalink -}}
+  {{- $srcset = delimit $set ", " -}}
+  {{- $w = $largest.Width -}}
+  {{- $h = $largest.Height -}}
+{{- else -}}
+  {{- $src = $m.url -}}
+{{- end -}}
+
+{{- $imgArgs := dict "src" $src "srcset" $srcset "sizes" $sizes "w" $w "h" $h "alt" $alt "eager" $eager -}}
+{{- /* 文章内图片包一层链接指向最大尺寸：有 JS 时在页面内放大，没有 JS 时直接打开图片 */ -}}
+{{- $zoom := $src -}}
+{{- $zoomLabel := cond (ne $alt "") "" "查看大图" -}}
+
+{{- if eq $ctx "inline" -}}
+<span class="media media--inline"{{ if $w }} style="--ratio: {{ printf "%.4f" (div (float $w) $h) | safeCSS }}"{{ end }}>
+  {{- if $zoom }}<a class="media__zoom" href="{{ $src }}"{{ with $zoomLabel }} aria-label="{{ . }}"{{ end }}>{{ end -}}
+  {{- partial "media/img.html" $imgArgs -}}
+  {{- if $zoom }}</a>{{ end -}}
+  {{- with .caption }}<span class="media__caption">{{ . }}</span>{{ end -}}
+</span>
+{{- else -}}
+<figure class="media media--block">
+  {{- if $zoom }}<a class="media__zoom" href="{{ $src }}"{{ with $zoomLabel }} aria-label="{{ . }}"{{ end }}>{{ end }}
+  {{ partial "media/img.html" $imgArgs }}
+  {{- if $zoom }}</a>{{ end }}
+  {{- with .caption }}
+  <figcaption class="media__caption">{{ . }}</figcaption>
+  {{- end }}
+</figure>
+{{- end -}}

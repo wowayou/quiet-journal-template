@@ -1,0 +1,62 @@
+# Hugo 构建配置（技术项）。
+# 网站名、导航、页脚、开关等「日常会改」的内容放在 data/site.yaml，不在这里。
+baseURL = "https://example.com/"
+locale = "zh-CN"
+defaultContentLanguage = "zh"
+title = "Quiet Journal"        # 仅作兜底；页面显示读取 data/site.yaml 的 title
+timeZone = "Asia/Shanghai"     # 固定站点时区，不随访客/作者设备变化
+hasCJKLanguage = true          # 中文摘要与字数统计
+enableRobotsTXT = true
+disableKinds = ["taxonomy", "term"]   # 第一版不做标签/分类
+
+# 草稿与未来文章永远不进入正式构建（不要在生产环境加 --buildDrafts）
+buildDrafts = false
+buildFuture = false
+buildExpired = false
+
+[module.hugoVersion]
+  min = "0.167.0"
+
+[permalinks.page]
+  # 稳定链接 = 文章文件夹名（如 content/posts/20261013-a7x2/ → /posts/20261013-a7x2/）
+  # 改标题不会改变 URL。
+  posts = "/posts/:contentbasename/"
+
+# 文章文件夹里的图片原文件不自动发布，只发布模板实际引用并重新编码过的版本。
+# 草稿、未被引用的图片因此不会出现在 public/。（这是页面级 build 选项，经 cascade 下发）
+[[cascade]]
+  [cascade.build]
+    publishResources = false
+  [cascade.target]
+    path = "{/posts,/posts/**}"
+
+[pagination]
+  pagerSize = 12
+
+[outputs]
+  home = ["html", "rss"]
+  section = ["html"]
+  page = ["html"]
+
+[markup.goldmark.parser]
+  wrapStandAloneImageWithinParagraph = false   # 单独成段的图片渲染为 figure
+[markup.goldmark.parser.attribute]
+  block = true
+[markup.goldmark.renderer]
+  unsafe = false               # 正文不允许原始 HTML
+[markup.highlight]
+  noClasses = true
+  style = "friendly"
+
+[params]
+  timeZone = "Asia/Shanghai"   # 模板显示日期用；与上方 timeZone 保持一致
+
+[params.media]
+  # 媒体解析层（layouts/_partials/media/resolve.html）
+  # provider: "local" = 仓库内文件；"r2" = 预留，未启用（见 docs/R2_FUTURE.md）
+  provider = "local"
+  widths = [640, 1024, 1600]   # 响应式图片宽度（Hugo 构建时生成，同时去除元数据）
+  quality = 82
+  [params.media.r2]
+    baseURL = ""               # 未来如 "https://media.example.com"
+    prefix = ""

@@ -1,0 +1,21 @@
+{
+  "name": "quiet-journal-template",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A quiet, editable personal journal template for Hugo.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "hugo server",
+    "build": "node scripts/check-media.mjs && hugo --gc --minify",
+    "check:media": "node scripts/check-media.mjs --public public",
+    "test": "node --test \"scripts/test/*.test.mjs\" && node scripts/smoke-test.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.150.0"
+  }
+}

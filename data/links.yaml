@@ -1,0 +1,9 @@
+# 友链 / 喜欢的网站。只放你真心推荐的个人站点；
+# 技术项目与素材致谢请写在 data/credits.yaml，不要混在这里。
+# 以下为占位示例（example.com 为保留域名），用前请替换或删除。
+- name: 示例朋友的博客
+  url: https://example.com/
+  note: 写山、写饭、写慢慢过去的日子。
+- name: 另一个示例站点
+  url: https://example.org/
+  note: 一位喜欢拍窗外的人。

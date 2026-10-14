@@ -1,0 +1,12 @@
+{{- /* 社交与订阅图标。data/site.yaml → social: [{ icon, url, label }]。参数：rss（是否加 RSS）。 */ -}}
+{{- $site := hugo.Data.site -}}
+{{- if or $site.social .rss }}
+<ul class="social">
+  {{- range $site.social }}
+  <li><a href="{{ .url }}" aria-label="{{ .label | default .icon }}" title="{{ .label | default .icon }}"{{ if hasPrefix .url "http" }} rel="noopener me"{{ end }}>{{ partial "icon.html" (dict "name" .icon) }}</a></li>
+  {{- end }}
+  {{- if .rss }}{{ with site.Home.OutputFormats.Get "rss" }}
+  <li><a href="{{ .RelPermalink }}" aria-label="RSS 订阅" title="RSS 订阅">{{ partial "icon.html" (dict "name" "rss") }}</a></li>
+  {{- end }}{{ end }}
+</ul>
+{{- end }}

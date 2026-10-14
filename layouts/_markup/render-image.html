@@ -1,0 +1,14 @@
+{{- /*
+  Markdown 图片的唯一入口：![替代文本](photo.webp "图注")
+  - 单独成段的图片 → 独立大图（figure）
+  - 同一段落连续多张 → 同排等高排列
+  所有解析与输出交给 media.html，这里不拼任何存储地址。
+*/ -}}
+{{- partial "media.html" (dict
+  "page" .Page
+  "src" .Destination
+  "alt" .PlainText
+  "caption" .Title
+  "context" (cond .IsBlock "block" "inline")
+  "eager" (and (eq .Ordinal 0) .Page.IsPage)
+) -}}

@@ -1,0 +1,18 @@
+{{- define "main" }}
+<header class="page-header">
+  <h1 class="page-header__title">{{ .Title }}</h1>
+  {{- with .Content }}<div class="page-header__desc prose">{{ . }}</div>{{ end }}
+</header>
+{{- with hugo.Data.links }}
+<ul class="plain-list">
+  {{- range . }}
+  <li>
+    <a class="plain-list__name" href="{{ .url }}" rel="noopener">{{ .name }}</a>
+    {{- with .note }}<p class="plain-list__note">{{ . }}</p>{{ end }}
+  </li>
+  {{- end }}
+</ul>
+{{- else }}
+<p class="empty">暂时还没有。</p>
+{{- end }}
+{{- end }}

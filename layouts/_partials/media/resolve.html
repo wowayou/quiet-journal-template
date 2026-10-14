@@ -1,0 +1,53 @@
+{{- /*
+  resolveMedia：把正文里的图片引用解析成实际资源。全站只有这里知道「图片存在哪」。
+
+  参数：page（引用图片的页面）、src（Markdown 中的路径，或 front matter cover）
+  返回：dict
+    kind     "resource"（本地，可由 Hugo 处理）| "url"（远程或 R2，原样输出）
+    resource Hugo 资源（kind=resource 时）
+    url      地址（kind=url 时）
+
+  引用约定（正文语义与存储位置无关）：
+    photo.webp        → 文章文件夹内的图片（page bundle）
+    /media/a.webp     → 全站共享图片，存放于 assets/media/a.webp
+    https://...       → 外部图片（会产生第三方请求，构建时给出提示）
+
+  provider（config/_default/hugo.toml → params.media.provider）：
+    local  只查本地；找不到则构建失败（避免发布坏图）
+    r2     先查本地（旧文章不受影响），本地没有再拼 R2 地址。预留，未启用。
+*/ -}}
+{{- $page := .page -}}
+{{- $src := .src | urls.PathUnescape | strings.TrimSpace -}}
+{{- $cfg := site.Params.media -}}
+{{- $provider := $cfg.provider | default "local" -}}
+{{- $out := dict -}}
+
+{{- if or (hasPrefix $src "http://") (hasPrefix $src "https://") -}}
+  {{- warnf "外部图片会让访客浏览器请求第三方：%s（%s）" $src $page.File.Path -}}
+  {{- $out = dict "kind" "url" "url" $src -}}
+{{- else -}}
+  {{- $res := false -}}
+  {{- if hasPrefix $src "/" -}}
+    {{- $res = resources.Get (strings.TrimPrefix "/" $src) -}}
+  {{- else -}}
+    {{- $res = $page.Resources.Get $src -}}
+  {{- end -}}
+
+  {{- if $res -}}
+    {{- $out = dict "kind" "resource" "resource" $res -}}
+  {{- else if eq $provider "r2" -}}
+    {{- $base := strings.TrimSuffix "/" ($cfg.r2.baseURL | default "") -}}
+    {{- if not $base }}{{ errorf "params.media.r2.baseURL 未设置（%s）" $page.File.Path }}{{ end -}}
+    {{- $key := "" -}}
+    {{- if hasPrefix $src "/" -}}
+      {{- $key = strings.TrimPrefix "/" $src -}}
+    {{- else -}}
+      {{- $key = printf "posts/%s/%s" $page.File.ContentBaseName $src -}}
+    {{- end -}}
+    {{- with $cfg.r2.prefix }}{{ $key = printf "%s/%s" (strings.Trim . "/") $key }}{{ end -}}
+    {{- $out = dict "kind" "url" "url" (printf "%s/%s" $base $key) -}}
+  {{- else -}}
+    {{- errorf "找不到图片 %q（%s）。检查文件名，或文件是否在文章文件夹 / assets/media 中。" $src $page.File.Path -}}
+  {{- end -}}
+{{- end -}}
+{{- return $out -}}

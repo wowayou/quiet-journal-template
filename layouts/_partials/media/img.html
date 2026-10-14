@@ -1,0 +1,2 @@
+{{- /* <img> 标签本身。参数由 media.html 传入；首屏图片不懒加载。 */ -}}
+<img src="{{ .src }}"{{ with .srcset }} srcset="{{ . }}" sizes="{{ $.sizes }}"{{ end }}{{ if .w }} width="{{ .w }}" height="{{ .h }}"{{ end }} alt="{{ .alt }}"{{ if .eager }} fetchpriority="high"{{ else }} loading="lazy"{{ end }} decoding="async">

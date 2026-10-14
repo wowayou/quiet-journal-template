@@ -1,0 +1,25 @@
+{{- /* RSS：只含已发布的 posts，全文输出。 */ -}}
+{{- $site := hugo.Data.site -}}
+{{- $posts := first 20 (where site.RegularPages "Section" "posts") -}}
+{{- printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>{{ $site.title | default site.Title }}</title>
+    <link>{{ .Permalink }}</link>
+    <description>{{ $site.description }}</description>
+    <language>{{ site.Language.Locale }}</language>
+    {{- with $posts }}<lastBuildDate>{{ (index . 0).Lastmod.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</lastBuildDate>{{ end }}
+    {{- with .OutputFormats.Get "rss" }}
+    <atom:link href="{{ .Permalink }}" rel="self" type="application/rss+xml"/>
+    {{- end }}
+    {{- range $posts }}
+    <item>
+      <title>{{ partial "title.html" . }}</title>
+      <link>{{ .Permalink }}</link>
+      <pubDate>{{ .Date.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</pubDate>
+      <guid>{{ .Permalink }}</guid>
+      <description>{{ .Content | transform.XMLEscape | safeHTML }}</description>
+    </item>
+    {{- end }}
+  </channel>
+</rss>

@@ -1,0 +1,33 @@
+{{- define "main" }}
+{{- $isPost := eq .Section "posts" }}
+{{- $kind := .Params.kind | default "note" }}
+{{- $toc := and $isPost (ge (len (findRE `<h2[\s>]` .Content)) 3) }}
+<article class="entry{{ if $isPost }} entry--{{ $kind }}{{ end }}">
+  {{- if $isPost }}
+  <a class="back-link" href="{{ "/" | relURL }}">{{ partial "icon.html" (dict "name" "arrow-right" "size" 16) }}返回</a>
+  {{- end }}
+  <header class="entry__header{{ if not $isPost }} page-header{{ end }}">
+    <h1 class="{{ if $isPost }}entry__title{{ else }}page-header__title{{ end }}">{{ partial "title.html" . }}</h1>
+    {{- if $isPost }}{{ partial "post-meta.html" (dict "page" .) }}{{ end }}
+    {{- if and $isPost (ne $kind "note") }}{{ with .Params.summary }}<p class="entry__lede">{{ . }}</p>{{ end }}{{ end }}
+  </header>
+
+  {{- if $toc }}
+  <details class="toc"><summary>目录</summary>{{ .TableOfContents }}</details>
+  {{- end }}
+
+  <div class="entry__body prose">
+    {{ .Content }}
+  </div>
+
+  {{- if $isPost }}
+  <footer class="entry__footer">
+    <a class="back-to-top" href="#top">{{ partial "icon.html" (dict "name" "arrow-up" "size" 16) }}回到顶部</a>
+    <nav class="entry__nav" aria-label="上一篇与下一篇">
+      {{- with .NextInSection }}<a href="{{ .RelPermalink }}" rel="prev"><span class="entry__nav-label">← 较新</span><span class="entry__nav-title">{{ partial "title.html" . }}</span></a>{{ else }}<span></span>{{ end }}
+      {{- with .PrevInSection }}<a class="entry__nav-next" href="{{ .RelPermalink }}" rel="next"><span class="entry__nav-label">较早 →</span><span class="entry__nav-title">{{ partial "title.html" . }}</span></a>{{ end }}
+    </nav>
+  </footer>
+  {{- end }}
+</article>
+{{- end }}

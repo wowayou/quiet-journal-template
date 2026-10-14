@@ -1,0 +1,16 @@
+{{- /*
+  自托管网络字体。参数：assets/fonts/ 下的文件夹名。
+  文件夹内需有 fonts.css（@font-face，url 指向 ./files/*.woff2）。
+  每个字体文件加指纹后发布（可长期缓存）；只发布被 fonts.css 引用的文件。
+  浏览器按 unicode-range 只下载页面实际用到的分片。
+*/ -}}
+{{- $dir := printf "fonts/%s" . -}}
+{{- $src := resources.Get (printf "%s/fonts.css" $dir) -}}
+{{- if not $src }}{{ errorf "找不到 assets/%s/fonts.css（data/site.yaml 的 webfont）" $dir }}{{ end -}}
+{{- $css := $src.Content -}}
+{{- range resources.Match (printf "%s/files/*.woff2" $dir) -}}
+  {{- $f := . | fingerprint -}}
+  {{- $css = replace $css (printf "./files/%s" (path.Base .Name)) $f.RelPermalink -}}
+{{- end -}}
+{{- $out := resources.FromString (printf "%s/fonts.css" $dir) $css | minify | fingerprint -}}
+<link rel="stylesheet" href="{{ $out.RelPermalink }}" integrity="{{ $out.Data.Integrity }}">

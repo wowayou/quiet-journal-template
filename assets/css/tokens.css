@@ -1,0 +1,103 @@
+/* =========================================================
+   设计变量（唯一来源）。定稿见 docs/DESIGN.md。
+   组件只引用这里的语义变量；个人修改写在 overrides.css。
+   颜色成对定义：--c-<名字>-light / --c-<名字>-dark，经 light-dark() 合成语义色。
+   ========================================================= */
+:root {
+  /* ---------- 配色（冷灰底色 + 强调色） ---------- */
+  --c-bg-light: #fbfcfd;
+  --c-fg-light: #1f2733;
+  --c-muted-light: #5d6878;
+  --c-line-light: #dfe5eb;
+  --c-raised-light: #eef2f6;
+  --c-accent-light: #c2410c;     /* 橙（默认）；其他可选色见文件末尾 */
+
+  --c-bg-dark: #18202b;
+  --c-fg-dark: #e6ebf2;
+  --c-muted-dark: #a4b0c0;
+  --c-line-dark: #303c4b;
+  --c-raised-dark: #222c39;
+  --c-accent-dark: #ff8f4d;
+
+  /* ---------- 字体 ---------- */
+  --font-code: "Google Sans Code", ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas;
+  --font-cjk: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  --font-body: var(--font-code), var(--font-cjk);   /* 拉丁字母用等宽，中文用系统黑体 */
+  --font-mono: var(--font-code), monospace;
+
+  --font-size: 1rem;
+  --line-height: 1.6;          /* 界面 */
+  --prose-line-height: 1.8;    /* 正文（中文需要更松） */
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: var(--font-size);
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: clamp(1.625rem, 1.3rem + 1.4vw, 1.875rem);
+  --text-hero: clamp(2.25rem, 1.6rem + 3vw, 3rem);
+
+  /* ---------- 间距：都按 --spacing-unit 缩放 ---------- */
+  --spacing-unit: 1rem;
+  --space-1: calc(var(--spacing-unit) * 0.25);
+  --space-2: calc(var(--spacing-unit) * 0.5);
+  --space-3: calc(var(--spacing-unit) * 0.75);
+  --space-4: var(--spacing-unit);
+  --space-5: calc(var(--spacing-unit) * 1.5);
+  --space-6: calc(var(--spacing-unit) * 2);
+  --space-7: calc(var(--spacing-unit) * 3);
+  --space-8: calc(var(--spacing-unit) * 4);
+
+  /* ---------- 版式 ---------- */
+  --content-width: 48rem;       /* 全站单栏宽度（页头、正文、页脚对齐） */
+  --wide-width: 64rem;          /* 图文文章的宽图 */
+  --header-height: 4.5rem;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-full: 999px;
+  --image-radius: var(--radius-sm);
+  --photo-gap: 0.5rem;
+
+  /* ---------- 动效（只用于反馈，不做装饰） ---------- */
+  --motion-fast: 160ms;
+  --motion-base: 320ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 深浅色：<html data-theme> = light | dark | auto（跟随系统） */
+:root { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+:root {
+  --bg: light-dark(var(--c-bg-light), var(--c-bg-dark));
+  --fg: light-dark(var(--c-fg-light), var(--c-fg-dark));
+  --muted: light-dark(var(--c-muted-light), var(--c-muted-dark));
+  --line: light-dark(var(--c-line-light), var(--c-line-dark));
+  --raised: light-dark(var(--c-raised-light), var(--c-raised-dark));
+  --accent: light-dark(var(--c-accent-light), var(--c-accent-dark));
+  --shadow-color: light-dark(rgb(20 40 70 / 0.08), rgb(0 0 0 / 0.4));
+}
+
+/* 不支持 light-dark() 的旧浏览器：按 data-theme 取值，auto 时为浅色 */
+@supports not (color: light-dark(#000, #fff)) {
+  :root {
+    --bg: var(--c-bg-light); --fg: var(--c-fg-light); --muted: var(--c-muted-light);
+    --line: var(--c-line-light); --raised: var(--c-raised-light); --accent: var(--c-accent-light);
+    --shadow-color: rgb(20 40 70 / 0.08);
+  }
+  :root[data-theme="dark"] {
+    --bg: var(--c-bg-dark); --fg: var(--c-fg-dark); --muted: var(--c-muted-dark);
+    --line: var(--c-line-dark); --raised: var(--c-raised-dark); --accent: var(--c-accent-dark);
+    --shadow-color: rgb(0 0 0 / 0.4);
+  }
+}
+
+/* 强调色可选项：data/site.yaml 的 accent（orange | blue | teal | rose | violet）。
+   每组都已检查：对底色与代码块底色的对比度 ≥ 4.5:1（浅色、深色两种模式）。
+   用 :where() 让优先级与 :root 相同：覆盖上面的默认橙色，但仍会被 overrides.css 覆盖。 */
+:root:where([data-accent="blue"])   { --c-accent-light: #0b6aa8; --c-accent-dark: #6ec2f0; }
+:root:where([data-accent="teal"])   { --c-accent-light: #0f766e; --c-accent-dark: #3cc8b4; }
+:root:where([data-accent="rose"])   { --c-accent-light: #be123c; --c-accent-dark: #fb7185; }
+:root:where([data-accent="violet"]) { --c-accent-light: #6d28d9; --c-accent-dark: #a78bfa; }

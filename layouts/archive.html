@@ -1,0 +1,8 @@
+{{- define "main" }}
+{{- $posts := where site.RegularPages "Section" "posts" }}
+<header class="page-header">
+  <h1 class="page-header__title">{{ .Title }}</h1>
+  <p class="page-header__desc">共 {{ len $posts }} 篇。</p>
+</header>
+{{- partial "archive-list.html" $posts }}
+{{- end }}

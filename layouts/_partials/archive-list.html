@@ -1,0 +1,12 @@
+{{- /* 按年 / 月分组的文章列表。参数：页面集合。 */ -}}
+{{- range .GroupByDate "2006" }}
+<section class="archive__year" aria-labelledby="y-{{ .Key }}">
+  <h2 id="y-{{ .Key }}" class="archive__year-title">{{ .Key }}<span class="archive__count">{{ len .Pages }} 篇</span></h2>
+  {{- range .Pages.GroupByDate "1" }}
+  <h3 class="archive__month">{{ .Key }} 月</h3>
+  <ul class="post-list post-list--compact">{{ range .Pages }}{{ partial "post-item.html" . }}{{ end }}</ul>
+  {{- end }}
+</section>
+{{- else }}
+<p class="empty">还没有文章。</p>
+{{- end }}

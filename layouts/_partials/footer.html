@@ -1,0 +1,20 @@
+{{- /* 页脚：居中；一句话（可空）、社交图标、版权、回到顶部。设置见 data/site.yaml 的 footer。 */ -}}
+{{- $site := hugo.Data.site -}}
+{{- $f := $site.footer | default dict -}}
+{{- $posts := where site.RegularPages "Section" "posts" -}}
+{{- $since := now.Year -}}
+{{- with $posts }}{{ $since = (index (last 1 .) 0).Date.Year }}{{ end -}}
+<footer class="site-footer">
+  <div class="site-footer__inner wrap">
+    {{- with $f.quote }}<p class="site-footer__quote">{{ . }}</p>{{ end }}
+    {{- partial "social.html" (dict "rss" $f.show_rss) }}
+    <div class="site-footer__legal">
+      <p>© {{ if lt $since now.Year }}{{ $since }}–{{ end }}{{ now.Year }} {{ $site.author }}{{ with $f.content_license }} · {{ . }}{{ end }}</p>
+      {{- if $f.show_built_with }}<p>Built with <a href="https://gohugo.io/">Hugo</a></p>{{ end }}
+    </div>
+    {{- if ne $f.back_to_top false }}
+    {{- /* #top 没有对应元素时，浏览器按规范滚动到页面顶部 */}}
+    <a class="back-to-top" href="#top">{{ partial "icon.html" (dict "name" "arrow-up" "size" 16) }}回到顶部</a>
+    {{- end }}
+  </div>
+</footer>

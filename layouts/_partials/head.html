@@ -1,0 +1,41 @@
+{{- /* <head>：元信息、样式、脚本。访客页面只加载同源资源，无统计脚本。 */ -}}
+{{- $site := hugo.Data.site -}}
+{{- $siteTitle := $site.title | default site.Title -}}
+{{- $title := partial "title.html" . -}}
+{{- $desc := $site.description -}}
+{{- if .IsPage }}{{ $desc = partial "summary.html" (dict "page" . "length" 80) | default $desc }}{{ end -}}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ if .IsHome }}{{ $siteTitle }}{{ else }}{{ $title }} · {{ $siteTitle }}{{ end }}</title>
+<meta name="description" content="{{ $desc }}">
+<link rel="canonical" href="{{ .Permalink }}">
+{{- with site.Home.OutputFormats.Get "rss" }}
+<link rel="alternate" type="application/rss+xml" href="{{ .RelPermalink }}" title="{{ $siteTitle }}">
+{{- end }}
+<link rel="icon" href="{{ "favicon.svg" | relURL }}" type="image/svg+xml">
+<meta property="og:title" content="{{ if .IsHome }}{{ $siteTitle }}{{ else }}{{ $title }}{{ end }}">
+<meta property="og:description" content="{{ $desc }}">
+<meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}">
+<meta property="og:url" content="{{ .Permalink }}">
+{{- if .IsPage }}{{ with .Params.cover | default (index (partial "post-images.html" .) 0) }}
+{{- $m := partial "media/resolve.html" (dict "page" $ "src" .) }}{{ if eq $m.kind "resource" }}
+{{- $og := $m.resource.Fill "1200x630 jpg q80 Smart" }}
+<meta property="og:image" content="{{ $og.Permalink }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+{{- end }}{{ end }}{{ end }}
+{{- $css := slice
+  (resources.Get "css/tokens.css")
+  (resources.Get "css/base.css")
+  (resources.Get "css/components.css")
+  (resources.Get "css/lightbox.css")
+  (resources.Get "css/overrides.css")
+  | resources.Concat "css/site.css" | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
+{{- /* 字体：Google Sans Code（拉丁字符，约 63 KB）；site.yaml 写 webfont: none 可关闭 */ -}}
+{{- with $site.webfont | default "google-sans-code" }}{{ if ne . "none" }}{{ partial "webfont.html" . }}{{ end }}{{ end }}
+{{- $theme := resources.Get "js/theme.js" | minify | fingerprint }}
+<script src="{{ $theme.RelPermalink }}" integrity="{{ $theme.Data.Integrity }}"></script>
+{{- $lb := resources.Get "js/lightbox.js" | minify | fingerprint }}
+<script src="{{ $lb.RelPermalink }}" integrity="{{ $lb.Data.Integrity }}" defer></script>

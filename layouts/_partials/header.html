@@ -1,0 +1,32 @@
+{{- /*
+  页头：站名在左、导航在右，当前页用波浪下划线；吸顶。
+  手机（≤ 40rem）导航收进三条线菜单；没有 JS 时导航直接显示。
+*/ -}}
+{{- $site := hugo.Data.site -}}
+{{- $current := .RelPermalink -}}
+<header class="site-header" data-header>
+  <div class="site-header__bar wrap">
+    <a class="site-title" href="{{ "/" | relURL }}">{{ $site.title | default site.Title }}</a>
+    <nav class="site-nav" id="site-nav" aria-label="主导航">
+      <ul>
+        {{- range $site.nav }}
+        {{- $url := .url | relURL }}
+        {{- $active := or (eq $url $current) (and (ne .url "/") (hasPrefix $current $url)) }}
+        <li><a href="{{ $url }}"{{ if $active }} aria-current="page"{{ end }}>{{ .label }}</a></li>
+        {{- end }}
+      </ul>
+    </nav>
+    <div class="site-actions">
+      <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="切换深色模式" aria-pressed="false">
+        <svg class="tt" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+          <mask id="tt-mask"><rect width="24" height="24" fill="#fff"/><circle class="tt__cut" cx="16.5" cy="7.5" r="6" fill="#000"/></mask>
+          <circle class="tt__core" cx="12" cy="12" r="5" fill="currentColor" mask="url(#tt-mask)"/>
+          <path class="tt__rays" d="M12 2.6v1.7M12 19.7v1.7M2.6 12h1.7M19.7 12h1.7M5.35 5.35l1.2 1.2M17.45 17.45l1.2 1.2M5.35 18.65l1.2-1.2M17.45 6.55l1.2-1.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="icon-btn menu-toggle" type="button" data-menu-toggle aria-controls="site-nav" aria-expanded="false" aria-label="打开菜单">
+        <span class="menu-toggle__bars" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
+    </div>
+  </div>
+</header>

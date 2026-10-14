@@ -1,0 +1,19 @@
+// Cloudflare Workers（仅静态资源，无 Worker 脚本）部署配置。
+// 用模板创建自己的仓库后：改 name；绑定自己的域名时加 routes 并把 workers_dev 设为 false。
+// 构建由 Cloudflare Workers Builds 完成（不使用 GitHub Actions），设置见 docs/DEPLOY.md。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "quiet-journal",
+  "compatibility_date": "2026-10-13",
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  },
+  // workers.dev 地址：未绑定自定义域名时用于访问
+  "workers_dev": true,
+  // 关闭版本预览地址：草稿分支不应产生任何公开可访问的地址
+  "preview_urls": false
+  // 自定义域名示例（会创建 DNS 记录，执行前确认）：
+  // "routes": [{ "pattern": "blog.example.com", "custom_domain": true }]
+}
