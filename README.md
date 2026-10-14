@@ -100,3 +100,6 @@ docs/                       DESIGN、DECISIONS、EDITING、CUSTOMIZE、DEPLOY、
 - [x] Phase 2：Sveltia CMS（`/admin/`）、草稿开关、手机 HEIC 上传去元数据（真机验证）、CSP 加固
 - [x] Phase 3：公开模板仓库 + 私有实例仓库 + Cloudflare Workers Builds 自动部署（非生产分支不构建）
 - [ ] Phase 4：真机验收与使用文档
+
+## 首发于
+[Linuxdo](https://linux.do)
