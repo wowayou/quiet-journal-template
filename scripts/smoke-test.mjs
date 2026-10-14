@@ -156,6 +156,11 @@ const zooms = [...ph.matchAll(/<a class="?media__zoom"? href="?([^" >]+)/g)].map
 check("文章图片包放大链接，指向已发布的重新编码图片", zooms.length === 3 && zooms.every((h) => rel.includes(h.replace(/^\//, "")) && /_hu_/.test(h)), zooms.join(", "));
 check("随笔（≥3 个小标题）有目录", /class="?toc"?/.test(page("posts/20261008-p2w6/index.html")));
 const hdr = readFileSync(join(pub, "_headers"), "utf8");
+check("_headers：页面保留刷新校验并禁止代理改写", hdr.includes("  Cache-Control: public, max-age=0, must-revalidate, no-transform\n"));
+for (const dir of ["css", "js", "fonts"]) {
+  check(`_headers：/${dir}/ 覆盖默认缓存且保留 no-transform`, hdr.includes(`/${dir}/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable, no-transform\n`));
+}
+check("_headers：后台覆盖默认缓存，no-store 与 no-transform 并存", hdr.includes("  Referrer-Policy: no-referrer\n  ! Cache-Control\n  Cache-Control: no-store, no-transform\n"));
 check("_headers：访客页面 CSP 禁止第三方脚本", /\/\*\n\s+Content-Security-Policy: default-src 'self'; script-src 'self';/.test(hdr));
 check("_headers：/admin/ 先移除全站 CSP 再设置 CMS 专用 CSP", /\/admin\/\*\n\s+! Content-Security-Policy\n\s+! Referrer-Policy\n\s+Content-Security-Policy:[^\n]*script-src 'self' https:\/\/unpkg\.com;[^\n]*https:\/\/api\.github\.com/.test(hdr));
 

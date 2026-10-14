@@ -2,6 +2,8 @@
 
 ## 1.0.0 — 2026-10-14（设计定稿）
 
+- 部署加固：`no-transform` 阻止 Cloudflare 自动注入统计脚本；保留页面刷新校验、带指纹资源的长期缓存与后台 `no-store`。部署文档补充已有 Worker 的 Git 连接、共享额度与令牌边界。
+
 - 强调色默认改为橙色，可选蓝、青绿、玫红、紫（`data/site.yaml` 的 `accent`）。
 - CMS 保存方式可选：simple（默认，单人模式）或 editorial_workflow（审核流），见 docs/EDITING.md。
 - 唯一风格：参考 AstroPaper 的文字单栏（等宽字体、强调色标题列表、虚线链接、波浪线导航）；冷灰底色，文字与强调色全部达到 AA 对比度。

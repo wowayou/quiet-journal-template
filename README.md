@@ -39,7 +39,7 @@ title: 在一个普通的下午     # 可以留空
 date: 2026-10-13T16:30:00+08:00
 kind: note                 # note 短记 | story 随笔 | photo 图文
 summary: ""                # 可选
-cover: ""                  # 可选，photo 卡片的封面；默认取第一张图
+cover: ""                  # 可选，分享卡片图片；默认取第一张图
 draft: true                # true 时不会出现在网站上
 ---
 
@@ -98,5 +98,5 @@ docs/                       DESIGN、DECISIONS、EDITING、CUSTOMIZE、DEPLOY、
 
 - [x] Phase 1：本地模板、主题接口、媒体检查、测试
 - [x] Phase 2：Sveltia CMS（`/admin/`）、草稿开关、手机 HEIC 上传去元数据（真机验证）、CSP 加固
-- [x] Phase 3：公开模板仓库 + 私有实例仓库 + Cloudflare Workers 部署
+- [ ] Phase 3：公开模板与私有实例已创建、Worker 已部署；Git 自动构建接入与验证待完成
 - [ ] Phase 4：真机验收与使用文档

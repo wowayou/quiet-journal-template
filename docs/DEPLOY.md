@@ -8,7 +8,9 @@
 
 1. 修改 `wrangler.jsonc` 的 `name`，以及 `config/_default/hugo.toml` 的 `baseURL`、`static/admin/config.yml` 的 `backend.repo`。
 2. Cloudflare 控制台 → Workers & Pages → 创建 → 导入 Git 仓库，选择你的私有仓库。
-   - GitHub App 授权时选 **Only select repositories**，只勾选这一个仓库。
+   - 如果 Worker 已通过本地 Wrangler 创建，不要重复新建：打开该 Worker → **Settings → Builds → Connect**，连接私有仓库。
+   - Worker 名称必须与 `wrangler.jsonc` 的 `name` 一致。
+   - GitHub App 授权时选 **Only select repositories**；已有授权时只增选当前私有仓库，不取消其他项目已有的授权。
 3. 构建设置：
 
    | 项 | 值 |
@@ -18,7 +20,10 @@
    | 环境变量（构建） | `HUGO_VERSION` = `0.167.0` |
 
 4. Settings → Build → Branch control：生产分支 `main`，**取消勾选 Enable Preview Builds**（不为其他分支生成公开预览地址）。
-5. `wrangler.jsonc` 中已设置 `"preview_urls": false`，不生成版本预览地址。
+5. `wrangler.jsonc` 中已设置 `"preview_urls": false`，不生成版本预览地址；这不能代替上一步的分支构建控制。
+6. 接入后用一次必要的提交验证自动部署成功，并确认非生产分支没有触发构建。仅本地执行 `wrangler deploy` 成功不代表 Git 自动部署已经接通。
+
+构建使用 **Cloudflare API token**，与登录 CMS 的 **GitHub 访问令牌**不同；不要把 CMS 令牌填到构建设置里。Cloudflare 可自动生成部署令牌（[官方权限说明](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/#api-token)），其默认权限还包含本项目不用的 KV/R2。令牌权限与有效期应单独审查，不要为省事扩大为全部账户权限。
 
 ## 绑定自己的域名
 
@@ -33,9 +38,17 @@ Cloudflare 会自动创建 DNS 记录和证书。该域名必须托管在同一�
 
 ## 用量
 
-- Workers Builds 免费额度：每月 3,000 构建分钟，同一账户同时 1 个构建，单次最长 20 分钟。
-- 每次推送到 `main` 构建一次（约 1–2 分钟）：CMS 中每次保存（包括保存草稿）都会触发。草稿不会出现在网站上，只是消耗构建分钟；按每天保存 20 次估算，每月约 600–1,200 分钟，在 3,000 分钟免费额度内。
+- [Workers Builds 官方额度](https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/)（2026-10-14 核对）：Free 每月 3,000 构建分钟、同账户 1 个并发；Paid 每月含 6,000 分钟、超出 $0.005/分钟、6 个并发；单次最长均为 20 分钟。
+- **接入前在控制台确认 Workers 套餐和本月账户总用量**，不能由域名的 Free 套餐推断 Workers 套餐。账户下其他项目共享额度。
+- simple 模式下每次推送到 `main` 都会构建，包括保存草稿；审核流模式下只有合并到生产分支才触发生产构建。若每次耗时 1–2 分钟、每天保存 20 次，本项目估算每月 600–1,200 分钟，但这不含其他项目，也不是费用保证。
+- 不启用预览构建、定时构建或自动重试；失败后先看日志、修复再触发。接近账户额度时暂停自动构建，不自动升级付费套餐。
 - 安全响应头（CSP 等）在 `static/_headers`；`/admin/` 有单独的 CSP。
+
+## 禁止代理注入统计脚本
+
+`static/_headers` 的 `Cache-Control: no-transform` 告知代理不要改写内容。Cloudflare [官方说明](https://developers.cloudflare.com/web-analytics/get-started/#sites-proxied-through-cloudflare)该指令可以阻止 Web Analytics 自动注入；仅影响当前 Worker 的响应，不必关闭整个域名区域的统计。
+
+页面仍然每次刷新校验，带指纹的 CSS/JS/字体仍可长期缓存，`/admin/` 仍为 `no-store`。上线后用真实浏览器检查脚本列表和控制台；只用 curl 检查不足以发现所有注入行为。不要为消除报错而放宽 CSP（内容安全策略）去允许统计脚本。
 
 ## 回滚
 

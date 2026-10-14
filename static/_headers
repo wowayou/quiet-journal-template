@@ -8,14 +8,19 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
   X-Frame-Options: DENY
   Cross-Origin-Opener-Policy: same-origin
+  # 保留 Workers 默认刷新校验；禁止代理改写内容（包括自动注入统计脚本）
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
 
 # 带指纹的文件，内容变化时文件名也变，可长期缓存
 /css/*
-  Cache-Control: public, max-age=31536000, immutable
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable, no-transform
 /js/*
-  Cache-Control: public, max-age=31536000, immutable
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable, no-transform
 /fonts/*
-  Cache-Control: public, max-age=31536000, immutable
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable, no-transform
 
 # 写作界面：按 Sveltia CMS 官方建议放行（unpkg 程序、jsDelivr 字体、GitHub API/状态/头像）
 /admin/*
@@ -23,5 +28,6 @@
   ! Referrer-Policy
   Content-Security-Policy: default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline'; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' blob: data: https://*.githubusercontent.com; media-src blob:; frame-src blob:; connect-src 'self' blob: data: https://unpkg.com https://api.github.com https://www.githubstatus.com; manifest-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   Referrer-Policy: no-referrer
-  Cache-Control: no-store
+  ! Cache-Control
+  Cache-Control: no-store, no-transform
   X-Robots-Tag: noindex, nofollow
