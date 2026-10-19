@@ -1,8 +1,5 @@
 {{- define "main" }}
 {{- $posts := where site.RegularPages "Section" "posts" }}
-<header class="page-header">
-  <h1 class="page-header__title">{{ .Title }}</h1>
-  <p class="page-header__desc">共 {{ len $posts }} 篇。</p>
-</header>
+{{- partial "page-header.html" (dict "page" . "description" (printf "共 %d 篇。" (len $posts))) }}
 {{- partial "archive-list.html" $posts }}
 {{- end }}

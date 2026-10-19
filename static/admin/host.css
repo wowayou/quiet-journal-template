@@ -1,0 +1,92 @@
+/* The wrapper uses Sveltia's documented mount element, never its internal class names. */
+#qj-admin-bar, .qj-dialog, .qj-tools {
+  --qj-paper: #f7f8fa;
+  --qj-ink: #202734;
+  --qj-border: #788394;
+  --qj-accent: #994009;
+  color-scheme: light;
+  color: var(--qj-ink);
+  background: var(--qj-paper);
+  font: 14px/1.6 system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  #qj-admin-bar, .qj-dialog, .qj-tools {
+    --qj-paper: #1a2028;
+    --qj-ink: #edf1f5;
+    --qj-border: #8e9bac;
+    --qj-accent: #ffac79;
+    color-scheme: dark;
+  }
+}
+#qj-admin-bar {
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0 0 auto;
+  height: calc(52px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--qj-border);
+}
+#qj-admin-bar a, #qj-admin-bar button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 4px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+#qj-admin-bar a { text-decoration: underline; text-underline-offset: 3px; }
+#qj-admin-bar :focus-visible, .qj-dialog :focus-visible, .qj-tools :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+#qj-quality-warning { color: var(--qj-accent); }
+#nc-root {
+  /* Keep the CMS's fixed editor overlay inside its documented mount area, below our bar. */
+  contain: layout;
+  position: fixed;
+  inset: calc(52px + env(safe-area-inset-top, 0px)) 0 0;
+  min-width: 0;
+}
+#qj-startup-status { position: fixed; inset: 70px 20px auto; font: 16px/1.6 system-ui, sans-serif; }
+.qj-dialog {
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 20px;
+  overflow: auto;
+  border: 1px solid var(--qj-border);
+  border-radius: 12px;
+}
+.qj-dialog::backdrop { background: #0008; }
+.qj-dialog h2 { font: bold 20px/1.4 system-ui, sans-serif; margin: 0 0 16px; }
+.qj-dialog p { margin: 12px 0; }
+.qj-dialog label { display: block; font-weight: 600; }
+.qj-dialog select, .qj-dialog button {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: inherit;
+  background: var(--qj-paper);
+  border: 1px solid var(--qj-border);
+  border-radius: 6px;
+  font: inherit;
+}
+.qj-dialog select { width: 100%; margin-top: 6px; }
+.qj-dialog button { cursor: pointer; }
+.qj-dialog .qj-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.qj-dialog [role="status"] { font-weight: 600; }
+.qj-tools { margin: 0; padding: 24px 16px; font-size: 16px; }
+.qj-tools main { max-width: 48rem; margin: 0 auto; }
+.qj-tools h1 { font-size: 1.6rem; line-height: 1.4; }
+.qj-tools h2 { margin-top: 2rem; font-size: 1.2rem; }
+.qj-tools a { color: var(--qj-accent); text-underline-offset: 3px; }
+.qj-tools code { overflow-wrap: anywhere; }
+.qj-tools pre { overflow-x: auto; padding: 16px; border: 1px solid var(--qj-border); border-radius: 8px; }
+.qj-tools pre code { overflow-wrap: normal; }
+.qj-tools .qj-note { border-left: 4px solid var(--qj-accent); padding-left: 12px; }

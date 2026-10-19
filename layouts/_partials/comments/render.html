@@ -1,0 +1,13 @@
+{{- with partial "comments/for-page.html" . -}}
+<section class="comments" aria-labelledby="comments-title" data-comments data-origin="{{ .origin }}" data-key="{{ .key }}">
+  <h2 id="comments-title">留言与回复</h2>
+  <p>免登录，不填邮箱，不发通知邮件。点击后才连接独立评论服务；留言公开，服务可能记录 IP 和浏览器信息，请勿填写敏感内容。</p>
+  <div class="comments__actions">
+    <button class="text-button" type="button" data-comments-open hidden>加载评论</button>
+    <button class="text-button" type="button" data-comments-close hidden>关闭评论</button>
+    <a href="{{ printf "%s/#%s" .origin (querify "key" .key) }}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">在独立窗口留言</a>
+  </div>
+  <p class="comments__status" data-comments-status role="status" aria-live="polite">评论尚未加载；也可在独立窗口查看。已发送的留言不会因关闭面板而撤回。</p>
+  <div data-comments-frame></div>
+</section>
+{{- end -}}

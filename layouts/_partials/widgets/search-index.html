@@ -1,0 +1,10 @@
+{{- /* 仅在搜索挂件实际渲染时生成；已发布、非 noindex、未显式排除的页面全文。 */ -}}
+{{- $entries := slice -}}
+{{- range site.RegularPages.ByDate.Reverse -}}
+  {{- if not (or .Params.noindex .Params.search_exclude) -}}
+    {{- $entries = $entries | append (dict "title" (partial "title.html" .) "url" .RelPermalink "summary" (partial "summary.html" (dict "page" . "length" 120)) "text" (.Plain | replaceRE `\s+` " ") "date" (cond .Date.IsZero "" (.Date.Format "2006-01-02"))) -}}
+  {{- end -}}
+{{- end -}}
+{{- $json := $entries | jsonify -}}
+{{- if gt (len $json) 2097152 }}{{ errorf "搜索索引超过 2 MiB。请用 search_exclude 排除不需要检索的页面，或按 EXTENDING.md 替换搜索实现；不会静默截断正文。" }}{{ end -}}
+{{- return (resources.FromString "search/index.json" $json | fingerprint) -}}

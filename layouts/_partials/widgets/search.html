@@ -1,0 +1,9 @@
+{{- $index := partialCached "widgets/search-index.html" .page "search-index" -}}
+<form class="search-form" role="search" data-search-form data-index="{{ $index.RelPermalink }}" hidden>
+  <label class="visually-hidden" for="search-{{ .widget.id }}">搜索标题与正文</label>
+  <input id="search-{{ .widget.id }}" data-search-input type="search" maxlength="80" placeholder="输入标题或正文里的几个字…" autocomplete="off" enterkeyhint="search">
+  <button class="text-button" type="submit">查找</button>
+</form>
+<p class="widget__hint" data-search-status role="status" aria-live="polite">支持中文连续文字；多个关键词用空格分隔。只在你的浏览器内搜索。</p>
+<ul class="search-results" data-search-results></ul>
+<p class="widget__hint"><a href="{{ "archive/" | relURL }}">也可以按时间浏览全部文章</a>。<noscript>搜索需要 JavaScript，归档始终可用。</noscript></p>

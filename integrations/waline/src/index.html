@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>留言与回复 · 独立评论面板</title>
+  <link rel="stylesheet" href="./vendor/waline-3.16.1.css">
+  <link rel="stylesheet" href="./panel.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <main>
+    <h1>留言与回复</h1>
+    <p class="privacy">留言公开，由独立的 Waline 服务处理，可记录 IP 和 HTTP 浏览器信息。面板不提交邮箱、个人网址或额外设备详情；请勿填写敏感内容。</p>
+    <p class="privacy">昵称和同篇待发送文字只在当前窗口的会话中暂存；切换文章会清除未发送草稿，关窗口后不保证保留。关闭面板不会撤回已发送的留言。</p>
+    <p id="notice" role="status" aria-live="polite" tabindex="-1">正在加载评论界面…</p>
+    <noscript>此独立评论面板需要 JavaScript；博客正文仍可正常阅读。</noscript>
+    <div id="waline"></div>
+  </main>
+</body>
+</html>

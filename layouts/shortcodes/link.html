@@ -1,0 +1,6 @@
+{{- /* 可迁移的行内链接组件；参数是数据，不接受原始 HTML。 */ -}}
+{{- $label := .Get "text" | htmlUnescape -}}
+{{- if not $label }}{{ errorf "%s：link 组件必须填写 text。" .Position }}{{ end -}}
+{{- $link := partial "links/resolve.html" (dict "url" (.Get "url" | htmlUnescape) "target" (.Get "target") "context" .Position) -}}
+<a {{ partial "links/attributes.html" $link | safeHTMLAttr }}{{ with .Get "title" }} title="{{ . | htmlUnescape }}"{{ end }}>{{ $label }}{{ partial "links/notice.html" $link }}</a>
+{{- /* 保持行内。 */ -}}

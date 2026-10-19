@@ -1,0 +1,6 @@
+{{- range partial "widgets/for-page.html" .page }}{{ if eq .slot $.slot }}
+<section class="widget widget--{{ .type }}" id="widget-{{ .id }}" data-widget="{{ .type }}" aria-labelledby="widget-title-{{ .id }}">
+  <h2 class="widget__title" id="widget-title-{{ .id }}">{{ .title }}</h2>
+  {{ partial .definition.partial (dict "page" $.page "widget" .) }}
+</section>
+{{- end }}{{ end -}}

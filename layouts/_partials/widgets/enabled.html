@@ -1,0 +1,27 @@
+{{- $definitions := hugo.Data.widget_types | default dict -}}
+{{- range $name, $_ := hugo.Data.widget_extensions }}{{ if isset $definitions $name }}{{ errorf "widget_extensions 不得覆盖内建类型 %q；请用独立名称。" $name }}{{ end }}{{ end -}}
+{{- $definitions = merge $definitions (hugo.Data.widget_extensions | default dict) -}}
+{{- $enabled := slice -}}
+{{- $ids := slice -}}
+{{- if gt (len (hugo.Data.widgets | default slice)) 8 }}{{ errorf "最多配置 8 个挂件；避免导航和阅读空间被挂件挤占。" }}{{ end -}}
+{{- range hugo.Data.widgets -}}
+  {{- if or (not (findRE `^[a-z][a-z0-9-]{0,31}$` (.id | default ""))) (in $ids .id) }}{{ errorf "挂件 ID 无效或重复：%q" .id }}{{ end -}}
+  {{- $ids = $ids | append .id -}}
+  {{- $definition := index $definitions (.type | default "") -}}
+  {{- if not $definition -}}
+    {{- errorf "未注册的挂件类型 %q；请先在代码白名单注册，不接受 CMS 脚本。" .type -}}
+  {{- else -}}
+    {{- if not (and (in (slice "home-after-intro" "content-after" "footer-before") .slot) (in $definition.slots .slot)) }}{{ errorf "挂件 %q 不支持插槽 %q。" .id .slot }}{{ end -}}
+    {{- if .enabled -}}
+      {{- if not .title }}{{ errorf "挂件 %q 必须填写标题。" .id }}{{ end -}}
+      {{- if not (templates.Exists (printf "_partials/%s" $definition.partial)) }}{{ errorf "挂件 %q 缺少模板 %q。" .id $definition.partial }}{{ end -}}
+      {{- range slice $definition.script $definition.style }}{{ with . }}{{ if not (resources.Get .) }}{{ errorf "挂件资源不存在：%s" . }}{{ end }}{{ end }}{{ end -}}
+      {{- if eq .type "answers" -}}
+        {{- if or (lt (len hugo.Data.answers) 2) (gt (len hugo.Data.answers) 100) }}{{ errorf "答案之书需要 2–100 条原创句子。" }}{{ end -}}
+        {{- range hugo.Data.answers }}{{ if or (not (strings.TrimSpace .)) (gt (len .) 600) }}{{ errorf "答案之书的句子不能为空或超过 600 字节。" }}{{ end }}{{ end -}}
+      {{- end -}}
+      {{- $enabled = $enabled | append (merge . (dict "definition" $definition)) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $enabled -}}

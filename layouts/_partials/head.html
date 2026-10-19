@@ -1,41 +1,76 @@
-{{- /* <head>：元信息、样式、脚本。访客页面只加载同源资源，无统计脚本。 */ -}}
+{{- /* 父页只执行同源脚本；可选评论使用受限跨源面板，不在 CMS 接受脚本。 */ -}}
+{{- $validated := partialCached "site/validate.html" . "validate" -}}
+{{- $headers := partialCached "site/headers.html" . "headers" -}}
 {{- $site := hugo.Data.site -}}
 {{- $siteTitle := $site.title | default site.Title -}}
 {{- $title := partial "title.html" . -}}
-{{- $desc := $site.description -}}
-{{- if .IsPage }}{{ $desc = partial "summary.html" (dict "page" . "length" 80) | default $desc }}{{ end -}}
+{{- if .IsHome }}{{ $title = $siteTitle }}{{ end -}}
+{{- $desc := .Params.description | default $site.description -}}
+{{- if and .IsPage (not .Params.description) }}{{ $desc = partial "summary.html" (dict "page" . "length" 120) | default $desc }}{{ end -}}
+{{- $url := partial "seo/url.html" . -}}
+{{- $is404 := eq .Kind "404" -}}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ if .IsHome }}{{ $siteTitle }}{{ else }}{{ $title }} · {{ $siteTitle }}{{ end }}</title>
 <meta name="description" content="{{ $desc }}">
-<link rel="canonical" href="{{ .Permalink }}">
+{{- if or $is404 .Params.noindex }}<meta name="robots" content="noindex, follow">{{ end }}
+{{- if not $is404 }}<link rel="canonical" href="{{ $url }}">{{ end }}
 {{- with site.Home.OutputFormats.Get "rss" }}
-<link rel="alternate" type="application/rss+xml" href="{{ .RelPermalink }}" title="{{ $siteTitle }}">
+<link rel="alternate" type="application/rss+xml" href="{{ .Permalink }}" title="{{ $siteTitle }}">
 {{- end }}
-<link rel="icon" href="{{ "favicon.svg" | relURL }}" type="image/svg+xml">
-<meta property="og:title" content="{{ if .IsHome }}{{ $siteTitle }}{{ else }}{{ $title }}{{ end }}">
+{{- partialCached "favicon.html" . "favicon" }}
+{{- range $site.social }}{{ if .me }}{{ $link := partial "links/resolve.html" (dict "url" .url "me" true "context" "身份链接") }}
+<link rel="me" href="{{ $link.url }}">
+{{- end }}{{ end }}
+{{- with $site.fediverse.creator }}<meta name="fediverse:creator" content="{{ . }}">{{ end }}
+{{- if not $is404 }}
+<meta property="og:title" content="{{ $title }}">
 <meta property="og:description" content="{{ $desc }}">
-<meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}">
-<meta property="og:url" content="{{ .Permalink }}">
-{{- if .IsPage }}{{ with .Params.cover | default (index (partial "post-images.html" .) 0) }}
-{{- $m := partial "media/resolve.html" (dict "page" $ "src" .) }}{{ if eq $m.kind "resource" }}
-{{- $og := $m.resource.Fill "1200x630 jpg q80 Smart" }}
-<meta property="og:image" content="{{ $og.Permalink }}">
+<meta property="og:site_name" content="{{ $siteTitle }}">
+<meta property="og:locale" content="{{ replace site.Language.Locale "-" "_" }}">
+<meta property="og:type" content="{{ if and .IsPage (eq .Section "posts") }}article{{ else }}website{{ end }}">
+<meta property="og:url" content="{{ $url }}">
+{{- if and .IsPage (eq .Section "posts") (not .Date.IsZero) }}
+<meta property="article:published_time" content="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">
+<meta property="article:modified_time" content="{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}">
+{{- end }}
+{{- $card := partialCached "seo/og.html" . .RelPermalink }}
+{{- with $card.image }}
+<meta property="og:image" content="{{ .Permalink }}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="{{ $card.alt }}">
 <meta name="twitter:card" content="summary_large_image">
-{{- end }}{{ end }}{{ end }}
-{{- $css := slice
-  (resources.Get "css/tokens.css")
-  (resources.Get "css/base.css")
-  (resources.Get "css/components.css")
-  (resources.Get "css/lightbox.css")
-  (resources.Get "css/overrides.css")
-  | resources.Concat "css/site.css" | minify | fingerprint }}
+<meta name="twitter:image" content="{{ .Permalink }}">
+<meta name="twitter:image:alt" content="{{ $card.alt }}">
+{{- else }}<meta name="twitter:card" content="summary">{{ end }}
+{{- partial "seo/structured-data.html" (dict "page" . "title" $title "description" $desc "url" $url "image" $card.image) }}
+{{- end }}
+{{- $styles := slice (resources.Get "css/tokens.css") (resources.Get "css/base.css") (resources.Get "css/components.css") (resources.Get "css/lightbox.css") }}
+{{- $widgets := partial "widgets/for-page.html" . }}
+{{- $comments := partial "comments/for-page.html" . }}
+{{- if $comments }}{{ $styles = $styles | append (resources.Get "css/comments.css") }}{{ end }}
+{{- if $widgets }}{{ $styles = $styles | append (resources.Get "css/widgets/base.css") }}{{ end }}
+{{- range $widgets }}{{ with .definition.style }}{{ $styles = $styles | append (resources.Get .) }}{{ end }}{{ end }}
+{{- $styles = $styles | uniq | append (resources.Get "css/overrides.css") }}
+{{- /* Concat 按目标路径缓存；不同挂件组合必须用不同目标，避免并行渲染串用 CSS。 */ -}}
+{{- $styleNames := slice }}{{ range $styles }}{{ $styleNames = $styleNames | append .Name }}{{ end }}
+{{- $cssTarget := printf "css/site-%s.css" (md5 (delimit $styleNames "|")) }}
+{{- $css := $styles | resources.Concat $cssTarget | minify | fingerprint }}
 <link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
-{{- /* 字体：Google Sans Code（拉丁字符，约 63 KB）；site.yaml 写 webfont: none 可关闭 */ -}}
 {{- with $site.webfont | default "google-sans-code" }}{{ if ne . "none" }}{{ partial "webfont.html" . }}{{ end }}{{ end }}
 {{- $theme := resources.Get "js/theme.js" | minify | fingerprint }}
 <script src="{{ $theme.RelPermalink }}" integrity="{{ $theme.Data.Integrity }}"></script>
 {{- $lb := resources.Get "js/lightbox.js" | minify | fingerprint }}
 <script src="{{ $lb.RelPermalink }}" integrity="{{ $lb.Data.Integrity }}" defer></script>
+{{- $scripts := slice }}
+{{- if $comments }}{{ $scripts = $scripts | append "js/comments.js" }}{{ end }}
+{{- range $widgets }}{{ with .definition.script }}{{ $scripts = $scripts | append . }}{{ end }}{{ end }}
+{{- range $scripts | uniq }}{{ $script := resources.Get . | minify | fingerprint }}
+<script type="module" src="{{ $script.RelPermalink }}" integrity="{{ $script.Data.Integrity }}"></script>
+{{- end }}
+{{- with resources.Get "js/custom.js" }}{{ $script := . | minify | fingerprint }}
+<script type="module" src="{{ $script.RelPermalink }}" integrity="{{ $script.Data.Integrity }}"></script>
+{{- end }}
+{{- partial "extensions/head.html" . }}

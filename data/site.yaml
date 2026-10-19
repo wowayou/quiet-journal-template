@@ -8,6 +8,20 @@ theme: auto
 # 强调色（标题、链接、图标）：orange 橙 | blue 蓝 | teal 青绿 | rose 玫红 | violet 紫
 accent: orange
 
+# favicon 上传入口；留空使用模板图标。推荐 512×512 的 PNG/WebP。
+favicon: ""
+# 外链默认新标签页；每条导航、社交、友链和 link 组件都可覆盖。
+links:
+  external_target: new       # new | same
+# 分享图片：单页 cover → 正文首图 → 全站 image → 自动文字卡片。
+sharing:
+  generate: true
+  image: ""
+  image_alt: ""
+# Mastodon 作者归属；模板留空，不预填模板作者的账号。
+fediverse:
+  creator: ""               # 如 @you@mastodon.social（还需在 Mastodon 允许站点域名）
+
 # 首页大标题与介绍（介绍支持 Markdown）
 hero:
   title: 你好呀
@@ -17,23 +31,23 @@ hero:
     按时间看 [全部文章](/archive/)，或者读一读 [关于](/about/)。
 
 nav:
-  - { label: 首页, url: / }
-  - { label: 归档, url: /archive/ }
-  - { label: 关于, url: /about/ }
-  - { label: 友链, url: /links/ }
-  - { label: 致谢, url: /credits/ }
+  - { type: home, label: 首页, icon: home, icon_only: true }
+  - { type: page, label: 归档, page: archive }
+  - { type: page, label: 关于, page: about }
+  - { type: page, label: 友链, page: links }
+  - { type: page, label: 致谢, page: credits }
 
-# 社交链接（首页与页脚的图标）。icon 可用：github x mastodon telegram bilibili douban
-# sinaweibo instagram zhihu xiaohongshu mail link rss。以下为占位示例，用前请替换或删除。
-social:
-  - { icon: github, url: "https://github.com/your-name", label: GitHub }
-  - { icon: mail, url: "mailto:hello@example.com", label: 邮件 }
+# 社交列表可在 CMS 拖动排序。内建 icon 或上传 icon_image（/media/*.webp）。
+# 空列表不是损坏：请添加自己的账号，不要保留虚构的 your-name / example.com。
+# me: true 只给确实属于自己的个人资料；不要给模板仓库或朋友的链接加 me。
+social: []
 
 footer:
   quote: 想记录的时候，就记下来。   # 页脚的一句话，可空
   # 个人文章与照片的版权声明（与模板代码的 MIT 许可证相互独立）
   content_license: 文字与照片版权所有，未经许可请勿转载。
-  show_built_with: true
+  show_built_with: false
+  show_template_credit: true   # 只回链 GitHub；一键关闭，不影响许可或功能
   show_rss: true
   back_to_top: true
 

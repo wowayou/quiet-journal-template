@@ -14,6 +14,11 @@ buildDrafts = false
 buildFuture = false
 buildExpired = false
 
+# 发布/更新时间只由内容字段决定；不把部署时间或文件时间冒充内容更新时间。
+[frontmatter]
+  date = ["date"]
+  lastmod = ["lastmod", "date"]
+
 [module.hugoVersion]
   min = "0.167.0"
 
@@ -22,13 +27,13 @@ buildExpired = false
   # 改标题不会改变 URL。
   posts = "/posts/:contentbasename/"
 
-# 文章文件夹里的图片原文件不自动发布，只发布模板实际引用并重新编码过的版本。
-# 草稿、未被引用的图片因此不会出现在 public/。（这是页面级 build 选项，经 cascade 下发）
+# 所有页面文件夹的原图都不自动发布（包括以后新增的 page bundle）。
+# 只发布模板实际引用并重新编码过的版本；草稿/未引用资源保持私密。
 [[cascade]]
   [cascade.build]
     publishResources = false
   [cascade.target]
-    path = "{/posts,/posts/**}"
+    path = "/**"
 
 [pagination]
   pagerSize = 12

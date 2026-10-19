@@ -9,7 +9,12 @@
     {{- partial "header.html" . }}
     <main id="main" class="site-main wrap" tabindex="-1">
       {{- block "main" . }}{{ end }}
+      {{- partial "widgets/slot.html" (dict "page" . "slot" "content-after") }}
     </main>
+    {{- if where (partial "widgets/for-page.html" .) "slot" "footer-before" }}
+    <div class="widget-area wrap">{{ partial "widgets/slot.html" (dict "page" . "slot" "footer-before") }}</div>
+    {{- end }}
     {{- partial "footer.html" . }}
+    {{- partial "extensions/body-end.html" . }}
   </body>
 </html>

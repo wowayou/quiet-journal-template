@@ -1,0 +1,5 @@
+{
+  "blogOrigin": "https://blog.example.com",
+  "panelOrigin": "https://comments.example.com",
+  "apiOrigin": "https://waline.example.com"
+}

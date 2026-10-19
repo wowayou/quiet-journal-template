@@ -6,8 +6,38 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="same-origin">
     <title>写作 · Quiet Journal</title>
+    <link rel="stylesheet" href="./host.css">
+    <script src="./manual-init.js"></script>
   </head>
   <body>
+    <nav id="qj-admin-bar" aria-label="写作工具">
+      <button id="qj-quality-open" type="button" disabled aria-haspopup="dialog">上传质量：站点设置</button>
+      <span id="qj-quality-warning" hidden aria-label="质量设置提示">●</span>
+      <a href="./tools.html" target="_blank" rel="noopener noreferrer">导入 / 导出</a>
+    </nav>
+    <dialog id="qj-quality-dialog" class="qj-dialog" aria-labelledby="qj-quality-title">
+      <h2 id="qj-quality-title">新上传图片的质量</h2>
+      <form>
+        <label for="qj-quality-select">本机偏好</label>
+        <select id="qj-quality-select">
+          <option value="site">遵循站点设置（模板默认 85）</option>
+          <option value="compact">省空间 · 75</option>
+          <option value="balanced">均衡 · 85</option>
+          <option value="high">高质量 · 92</option>
+        </select>
+        <p>只影响之后上传的普通图片。保留 WebP 与站点尺寸限制（模板默认最长边 2048）；图标等字段的专用规则优先。不是原图保留或无损模式。</p>
+        <p>本机记住，不写入仓库。选择在<strong>下次载入编辑器</strong>时生效；请先保存文章，再重新载入。已有图片不会重新压缩，网页端仍按 Hugo 的质量设置处理。</p>
+        <p id="qj-quality-status" role="status" aria-live="polite"></p>
+        <div class="qj-actions">
+          <button type="submit">记住下次选择</button>
+          <button type="button" data-close>关闭</button>
+          <button type="button" id="qj-quality-reload" hidden>我已保存文章，重新载入</button>
+        </div>
+      </form>
+    </dialog>
+    <p id="qj-startup-status" role="status">正在加载编辑器…</p>
+    <noscript>写作界面需要 JavaScript。你仍可用本地编辑器和 Git 管理 Markdown；内容传输说明可从上方入口查看。</noscript>
+    <div id="nc-root"></div>
     <!--
       Sveltia CMS（MIT）。版本固定，并用 SRI 校验文件完整性；升级步骤见 docs/EDITING.md。
       这个页面只在写作时由你自己的浏览器加载，访客浏览网站时不会加载它。
@@ -17,5 +47,7 @@
       src="https://unpkg.com/@sveltia/cms@0.235.1/dist/sveltia-cms.js"
       integrity="sha384-0buNFRS4cnwrZfClZMgBYxOTaefGGJltRCRnsKTgLl+q0sOGWcd8sgJpgwr1oKUl"
       crossorigin="anonymous"></script>
+    <script src="./editor-components.js"></script>
+    <script type="module" src="./editor.js"></script>
   </body>
 </html>

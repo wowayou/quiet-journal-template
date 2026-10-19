@@ -1,10 +1,9 @@
-# Sveltia CMS 配置（可替换的编辑器适配层，见 docs/EDITING.md）。
-# 用模板创建自己的仓库后，只需改 backend.repo。字段说明：https://sveltiacms.app/en/docs
+# 编辑器适配层，可由模板作者或使用者修改；站点不依赖 CMS 运行。
+# 只替换 backend.repo；不要把访问令牌写进文件。完整约定见 docs/EDITING.md。
 backend:
   name: github
-  repo: OWNER/REPO          # ← 改成你的私有仓库，例如 yourname/life-journal
+  repo: OWNER/REPO          # ← 你的私有仓库，不是模板仓库
   branch: main
-  # 只允许「访问令牌」登录：Fine-grained PAT，只授权这一个仓库的 Contents 读写
   auth_methods: [token]
   commit_messages:
     create: "add {{collection}}: {{slug}}"
@@ -13,45 +12,46 @@ backend:
     uploadMedia: "upload {{path}}"
     deleteMedia: "remove {{path}}"
 
-# ── 保存方式（二选一，详见 docs/EDITING.md）────────────────────────────
-# simple（默认，单人写作）：保存直接提交到 main；是否公开由文章的「草稿」开关决定。
-#   令牌权限：Contents 读写。
-# editorial_workflow（审核流）：保存进入 cms/* 分支和 PR，点「发布」才合并到 main。
-#   切换时同时把下方 draft 字段的 default 改为 false，令牌另需 Pull requests 读写。
+# simple：保存到 main；是否公开由 draft 控制。每次保存会触发已有的生产构建。
+# 可选 editorial_workflow：草稿进入分支；还需 Pull requests 读写权限，见 EDITING.md。
 publish_mode: simple
-
-# 媒体库里直接上传的共享图片放 assets/media，正文用 /media/文件名 引用；
-# 只有被已发布文章引用的图片才会发布。
 media_folder: assets/media
 public_folder: /media
-
 media_libraries:
   default:
     config:
-      max_file_size: 26214400   # 25 MiB：手机原图上限；上传时会被压缩
-      slugify_filename: true    # 文件名转为 ASCII，避免中文地名/人名进入文件名
+      max_file_size: 26214400
+      slugify_filename: true
       transformations:
-        # 浏览器内处理：HEIC/JPEG/PNG → WebP，最长边 2048，去除 EXIF
         raster_image:
           format: webp
           quality: 85
           width: 2048
           height: 2048
-
 slug:
   encoding: ascii
   clean_accents: true
   timezone: local
 
+# 保持 Markdown 可迁移；不启用任意 HTML、内嵌脚本或像素级排版。
+# 标题字段已生成 h1，正文工具栏从 h2 开始。
+field_defaults:
+  richtext:
+    modes: [rich_text, raw]
+    buttons: [bold, italic, strikethrough, code, link, heading-two, heading-three, heading-four, bulleted-list, numbered-list, quote]
+    editor_components: [image, code-block, table, hr, qj-link]
+    linked_images: false
+    sanitize_preview: true
+
 collections:
   - name: posts
     label: 文章
     label_singular: 文章
+    description: 链接由文件夹 ID 决定，改标题不会改链接。发布前检查照片画面里的私人信息。
     folder: content/posts
-    # 每篇一个文件夹，名字是稳定链接：日期 + 随机串，与标题无关
     path: "{{slug}}/index"
     slug: "{{year}}{{month}}{{day}}-{{uuid_shorter}}"
-    media_folder: ""            # 正文里插入的图片放在文章自己的文件夹
+    media_folder: ""
     public_folder: ""
     create: true
     format: yaml-frontmatter
@@ -64,28 +64,95 @@ collections:
         - { name: drafts, label: 草稿, field: draft, pattern: true }
         - { name: photos, label: 图文, field: kind, pattern: photo }
     fields:
-      - { name: title, label: 标题, required: false, hint: 可以不写。没有标题时用正文开头代替。 }
-      - { name: date, label: 时间, widget: datetime, default: "{{now}}", input_timezone: Asia/Shanghai, hint: 网站上只显示日期。 }
+      - { name: title, label: 标题, required: false, hint: 可留空，网站使用正文开头。 }
+      - { name: date, label: 发布时间, widget: datetime, default: "{{now}}", input_timezone: Asia/Shanghai, hint: 阅读界面只显示日期；机器可读数据和 RSS 会包含带时区的完整时间。 }
+      - &lastmod
+        name: lastmod
+        label: 内容更新时间
+        widget: datetime
+        required: false
+        default: ""
+        input_timezone: Asia/Shanghai
+        hint: 有实质修改才填写；留空沿用发布时间。不得早于发布或晚于现在。不会用部署时间自动冒充更新。
       - name: kind
-        label: 类型
+        label: 文章类型
         widget: select
         default: note
         options:
           - { label: 短记, value: note }
           - { label: 随笔, value: story }
           - { label: 图文（图片更宽）, value: photo }
-      - name: body
+      - &body
+        name: body
         label: 正文
         widget: markdown
         required: false
-        hint: 图片会自动转为 WebP 并去除拍摄信息。同一段里连续放多张图会并排显示。
-      - { name: summary, label: 摘要, widget: text, required: false, hint: 可选。列表里显示的一两句话。 }
-      - { name: featured, label: 精选, widget: boolean, default: false, required: false, hint: 显示在首页「精选」（最多 3 篇） }
-      - name: draft
+        hint: 可视化或 Markdown 编辑。同段多图并排；图片替代文本写画面，标题写图注。普通链接跟随站点默认；「链接（打开方式）」可单独选择当前或新标签页。
+      - { name: summary, label: 摘要, widget: text, required: false, hint: 列表和搜索中的一两句话；不填则取正文。 }
+      - &description
+        name: description
+        label: 搜索与分享简介
+        widget: text
+        required: false
+        hint: 可选，优先用于搜索引擎和分享卡片；不要堆砌关键词。
+      - &cover
+        name: cover
+        label: 分享封面
+        widget: image
+        required: false
+        hint: 可选，建议 1200×630；留空取正文首图，没有图片则生成文字卡片。
+      - &cover_alt
+        name: cover_alt
+        label: 分享封面的替代文本
+        required: false
+      - { name: featured, label: 精选, widget: boolean, default: false, required: false, hint: 首页最多显示 3 篇精选。 }
+      - { name: comments, label: 允许本篇留言, widget: boolean, default: true, required: false, hint: 全站评论已开通时生效。关闭不会删除或锁定独立服务中已有的评论。 }
+      - &search_exclude
+        name: search_exclude
+        label: 不加入站内搜索
+        widget: boolean
+        default: false
+        required: false
+        hint: 只控制搜索收录，不是访问保护。私密内容请用草稿。
+      - &draft
+        name: draft
         label: 草稿（不公开）
         widget: boolean
-        default: true     # 审核流模式下改为 false
-        hint: 写完关掉再保存，就会发布。想撤下已发布的文章，打开它再保存。
+        default: true
+        hint: 关掉并保存会发布；打开并保存会撤下。导航引用了该页面时，先移除导航，避免构建失败。
+
+  - name: pages
+    label: 页面
+    label_singular: 页面
+    description: 关于、现在、阅读指南等常青页面。先创建并发布，再在导航中选择。新页面复用现有组件，不必复制模板。
+    folder: content
+    create: true
+    # 不启用 nested，只管理 content 根目录的 .md；文章集合独立。
+    slug: "page-{{uuid_shorter}}"
+    format: yaml-frontmatter
+    preview_path: "{{slug}}/"
+    summary: "{{title}}{{draft | ternary(' · 草稿', '')}}"
+    fields:
+      - { name: title, label: 标题 }
+      - name: layout
+        label: 页面功能
+        widget: select
+        default: page
+        options:
+          - { label: 普通内容页（关于 / 现在 / 自定义页面）, value: page }
+          - { label: 时间归档（自动列文章）, value: archive }
+          - { label: 友链列表（读取站点设置里的友链）, value: links }
+          - { label: 致谢（读取模板的许可证资料）, value: credits }
+        hint: 类型决定复用哪个组件，不是任意拖拽排版。新增业务类型属于二次开发，接口见 EXTENDING.md。
+      - *body
+      - *description
+      - { name: date, label: 首次发布时间, widget: datetime, required: false, default: "{{now}}", input_timezone: Asia/Shanghai, hint: 历史页面没有可靠时间可留空，不伪造日期。 }
+      - *lastmod
+      - *cover
+      - *cover_alt
+      - *search_exclude
+      - { name: noindex, label: 不建议搜索引擎收录, widget: boolean, default: false, required: false, hint: 同时从站内搜索和站点地图移除；这不是密码保护。 }
+      - *draft
 
   - name: settings
     label: 站点设置
@@ -94,9 +161,25 @@ collections:
         label: 网站信息
         file: data/site.yaml
         fields:
-          - { name: title, label: 网站名 }
+          - { name: title, label: 网站名, hint: 模板中的 Quiet Journal 是占位站名，请换成自己的。 }
           - { name: description, label: 一句话简介, required: false }
-          - { name: author, label: 署名, hint: 显示在页脚和 RSS，不必用真名 }
+          - { name: author, label: 署名, hint: 用于页脚、RSS 和机器可读作者信息，不必用真名。 }
+          - &site_image
+            name: favicon
+            label: 网站图标（favicon）
+            widget: image
+            required: false
+            media_folder: /assets/media
+            public_folder: /media
+            accept: image/png,image/jpeg,image/webp
+            hint: 推荐正方形 512×512；留空用模板图标。构建时生成浏览器和 Apple 触屏图标。不接受 SVG/ICO 上传。
+            media_libraries:
+              default:
+                config:
+                  max_file_size: 2097152
+                  slugify_filename: true
+                  transformations:
+                    raster_image: { format: webp, quality: 90, width: 512, height: 512 }
           - name: accent
             label: 强调色
             widget: select
@@ -116,55 +199,171 @@ collections:
               - { label: 浅色, value: light }
               - { label: 深色, value: dark }
           - name: hero
-            label: 首页大标题
+            label: 首页介绍
             widget: object
             fields:
-              - { name: title, label: 标题, required: false }
+              - { name: title, label: 大标题, required: false }
               - { name: text, label: 介绍, widget: markdown, required: false }
-          - name: nav
-            label: 导航
-            widget: list
+          - name: links
+            label: 链接默认行为
+            widget: object
             fields:
-              - { name: label, label: 名称 }
-              - { name: url, label: 链接, hint: 站内页面写 /archive/ 这样的路径 }
+              - name: external_target
+                label: 非本站网页默认打开方式
+                widget: select
+                default: new
+                options:
+                  - { label: 新标签页, value: new }
+                  - { label: 当前标签页, value: same }
+                hint: 本站链接默认当前标签页。每条链接还可单独覆盖；邮件/电话交给设备处理。
+          - name: nav
+            label: 导航（拖动排序）
+            widget: list
+            summary: "{{label}}"
+            types:
+              - name: home
+                label: 首页图标
+                widget: object
+                fields:
+                  - &nav_label { name: label, label: 名称, default: 首页, hint: 即使只显示图标，也必须给屏幕阅读器提供名称。 }
+                  - &nav_icon
+                    name: icon
+                    label: 内建图标
+                    widget: select
+                    required: false
+                    default: home
+                    options: ["", home, search, calendar, link, github, x, mastodon, telegram, bilibili, douban, sinaweibo, instagram, zhihu, xiaohongshu, mail, rss]
+                  - &custom_icon
+                    <<: *site_image
+                    name: icon_image
+                    label: 自定义图标
+                    hint: 可上传自己的 PNG/JPEG/WebP，优先于内建图标；透明背景在深浅色都应清晰可见。
+                  - &icon_only { name: icon_only, label: 只显示图标, widget: boolean, default: true, required: false }
+                  - &target
+                    name: target
+                    label: 打开方式
+                    widget: select
+                    required: false
+                    default: auto
+                    options:
+                      - { label: 跟随站点默认, value: auto }
+                      - { label: 当前标签页, value: same }
+                      - { label: 新标签页, value: new }
+              - name: page
+                label: 站内页面
+                widget: object
+                fields:
+                  - { <<: *nav_label, default: "" }
+                  - name: page
+                    label: 选择页面
+                    widget: relation
+                    collection: pages
+                    value_field: "{{slug}}"
+                    display_fields: [title]
+                    search_fields: [title, "{{slug}}"]
+                    hint: 请选择已经发布的页面；不会自动创建不存在的页面。删除、撤下页面之前，先移除这里的引用。
+                  - { <<: *nav_icon, default: "" }
+                  - *custom_icon
+                  - { <<: *icon_only, default: false }
+                  - *target
+              - name: external
+                label: 外部网站
+                widget: object
+                fields:
+                  - { <<: *nav_label, default: "" }
+                  - { name: url, label: 网址, pattern: ['^https?://', '外部网站须使用完整的 http:// 或 https:// 地址。'] }
+                  - *target
+                  - { <<: *nav_icon, default: "" }
+                  - *custom_icon
+                  - { <<: *icon_only, default: false }
           - name: social
-            label: 社交链接
+            label: 社交链接（拖动排序，图标多时自动换行）
             widget: list
             required: false
+            summary: "{{label}}"
             fields:
-              - { name: icon, label: 图标, widget: select, options: [github, x, mastodon, telegram, bilibili, douban, sinaweibo, instagram, zhihu, xiaohongshu, mail, link, rss] }
-              - { name: url, label: 链接 }
-              - { name: label, label: 名称, required: false }
+              - { name: label, label: 名称, hint: 例如 Mastodon、GitHub；填自己的账号，不是模板作者的。 }
+              - { name: url, label: 链接, hint: 个人资料的完整 HTTPS 地址；邮件用 mailto:。 }
+              - { <<: *nav_icon, default: link }
+              - *custom_icon
+              - *target
+              - { name: me, label: 这是我的身份链接（rel=me）, widget: boolean, required: false, default: false, hint: Mastodon 网站验证需要打开；不要给朋友、赞助平台活动页或模板项目加身份声明。 }
+          - name: fediverse
+            label: 联邦宇宙作者归属
+            widget: object
+            fields:
+              - { name: creator, label: 作者账号, required: false, hint: '例如 @you@mastodon.social。还要在 Mastodon 的作者归属设置里允许本站域名；这里不会代你发帖或开启 ActivityPub。' }
+          - name: sharing
+            label: 分享卡片
+            widget: object
+            fields:
+              - { name: generate, label: 没有图片时生成文字卡片, widget: boolean, default: true, hint: 只在构建时生成，不使用远程图片 API。 }
+              - { name: image, label: 全站默认分享图, widget: image, required: false, hint: 单篇封面和正文首图优先；推荐 1200×630。 }
+              - { name: image_alt, label: 默认分享图的替代文本, required: false }
           - name: footer
             label: 页脚
             widget: object
             fields:
               - { name: quote, label: 一句话, required: false }
               - { name: content_license, label: 版权声明, required: false }
-              - { name: show_built_with, label: 显示 Built with Hugo, widget: boolean, default: true }
+              - { name: show_template_credit, label: 显示 Quiet Journal 的 GitHub 回链, widget: boolean, default: true, hint: 一键关闭，不影响功能；不是你的个人 GitHub 链接。 }
+              - { name: show_built_with, label: 显示 Built with Hugo, widget: boolean, default: false }
               - { name: show_rss, label: 显示 RSS 图标, widget: boolean, default: true }
               - { name: back_to_top, label: 回到顶部, widget: boolean, default: true }
-          - { name: summary_length, label: 摘要字数, widget: number, value_type: int, default: 100 }
+          - { name: summary_length, label: 列表摘要字数, widget: number, value_type: int, min: 20, max: 300, default: 100 }
       - name: links
         label: 友链
         file: data/links.yaml
         fields:
           - name: links
-            label: 友链
+            label: 友链（拖动排序）
             label_singular: 友链
             widget: list
             root: true
+            required: false
             fields:
               - { name: name, label: 名称 }
               - { name: url, label: 网址 }
               - { name: note, label: 一句话介绍, required: false }
-
-  - name: pages
-    label: 页面
-    files:
-      - name: about
-        label: 关于
-        file: content/about.md
+              - *target
+      - name: widgets
+        label: 可选挂件
+        file: data/widgets.yaml
         fields:
-          - { name: title, label: 标题 }
-          - { name: body, label: 正文, widget: markdown }
+          - name: widgets
+            label: 挂件（拖动排序）
+            widget: list
+            root: true
+            required: false
+            max: 8
+            summary: "{{title}} · {{slot}}"
+            fields:
+              - { name: id, label: 唯一 ID, pattern: ['^[a-z][a-z0-9-]{0,31}$', '小写字母开头，只用小写字母、数字、短横线，最长 32 字符。'], hint: 例如 search、answers；全站不能重复。改 ID 会改变挂件锚点。 }
+              - { name: type, label: 类型, widget: select, options: [{ label: 简单搜索, value: search }, { label: 答案之书, value: answers }] }
+              - { name: title, label: 标题 }
+              - { name: enabled, label: 启用, widget: boolean, default: false }
+              - name: slot
+                label: 放置位置
+                widget: select
+                default: home-after-intro
+                options:
+                  - { label: 首页介绍之后, value: home-after-intro }
+                  - { label: 每页正文之后, value: content-after }
+                  - { label: 每页页脚之前, value: footer-before }
+      - name: comments
+        label: 评论接入（需先部署独立服务）
+        file: data/comments.yaml
+        fields:
+          - { name: enabled, label: 启用评论入口, widget: boolean, default: false, hint: 先按 COMMENTS.md 部署并验收隔离面板与 Waline 服务，不能仅打开开关。 }
+          - { name: origin, label: 隔离面板的 HTTPS 源, required: false, hint: '例如 https://comments.example.com，不带路径。必须与博客不同源；这里不填写 API、数据库或邮件密钥。' }
+      - name: answers
+        label: 答案之书的句子
+        file: data/answers.yaml
+        fields:
+          - name: answers
+            label: 句子（纯文字，不复制商业书籍内容）
+            widget: list
+            root: true
+            min: 2
+            max: 100
+            field: { name: answer, label: 一句话, widget: string }

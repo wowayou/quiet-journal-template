@@ -1,0 +1,12 @@
+# 代码维护的白名单，不在 CMS 开放 partial/script 路径。
+# 新类型在 data/widget_extensions.yaml 注册，规范见 docs/EXTENDING.md。
+search:
+  partial: widgets/search.html
+  script: js/widgets/search.js
+  style: css/widgets/search.css
+  slots: [home-after-intro, content-after, footer-before]
+answers:
+  partial: widgets/answers.html
+  script: js/widgets/answers.js
+  style: css/widgets/answers.css
+  slots: [home-after-intro, content-after, footer-before]

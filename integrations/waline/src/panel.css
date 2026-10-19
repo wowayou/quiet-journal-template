@@ -1,0 +1,20 @@
+:root { color-scheme: light; --panel-bg: #fbfcfd; --panel-fg: #1f2733; --panel-muted: #5d6878; --panel-line: #dfe5eb; --waline-theme-color: #c2410c; --waline-active-color: #9a3412; }
+:root[data-theme="dark"] { color-scheme: dark; --panel-bg: #18202b; --panel-fg: #e6ebf2; --panel-muted: #a4b0c0; --panel-line: #303c4b; --waline-theme-color: #ff8f4d; --waline-active-color: #ffb27d; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--panel-bg); color: var(--panel-fg); font: 16px/1.7 system-ui, sans-serif; }
+main { max-width: 48rem; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.25rem; margin-top: 0; }
+.privacy { color: var(--panel-muted); font-size: .875rem; }
+#notice { border-left: 3px solid var(--waline-theme-color); padding-left: 12px; overflow-wrap: anywhere; }
+#notice:focus-visible { outline: 2px solid var(--waline-theme-color); }
+#waline { --waline-font-size: 1rem; --waline-color: var(--panel-fg); --waline-info-color: var(--panel-muted); --waline-dark-grey: var(--panel-muted); --waline-light-grey: var(--panel-muted); --waline-bg-color: var(--panel-bg); --waline-bg-color-light: var(--panel-bg); --waline-border-color: var(--panel-line); }
+#waline button, #waline input { min-height: 44px; }
+#waline .wl-panel { background: var(--panel-bg); color: var(--panel-fg); transition: none; }
+#waline input, #waline textarea { font: inherit; color: var(--panel-fg); transition: none; }
+#waline textarea { min-height: 8rem; }
+#waline .wl-warning { color: var(--panel-fg); background: transparent; border-color: var(--waline-theme-color); }
+/* Public Waline style selectors, pinned and regression-tested; no login/like/image UI here. */
+#waline .wl-like, #waline .wl-sort, #waline .wl-user, #waline .wl-user-avatar, #waline .wl-content img, #waline .wl-content video, #waline .wl-content audio { display: none; }
+#waline .wl-card { padding-left: 0; }
+#waline .wl-nick { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }

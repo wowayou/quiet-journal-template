@@ -30,6 +30,8 @@ const BLOCKED_EXT = new Set([
 ]);
 const TEXT_EXT = new Set([".md", ".markdown", ".yaml", ".yml", ".toml", ".json", ".txt", ".html", ".css", ".js", ".mjs", ".xml"]);
 const FONT_EXT = new Set([".woff", ".woff2"]);
+// 构建专用字体不作为网页字体发布，只允许放在固定目录。
+const BUILD_FONT_EXT = new Set([".ttf", ".otf"]);
 
 // ---------- 格式识别 ----------
 
@@ -138,6 +140,9 @@ function inspectSvg(text) {
   if (/\son\w+\s*=/i.test(text)) problems.push("SVG 含事件处理属性");
   if (/<metadata[\s>]|xmlns:(sodipodi|inkscape|rdf|dc)=/i.test(text)) problems.push("SVG 含编辑器元数据");
   if (/(href|src)\s*=\s*["']\s*(https?:|data:)/i.test(text)) problems.push("SVG 引用外部或内嵌资源");
+  if (/<!DOCTYPE|<!ENTITY/i.test(text)) problems.push("SVG 不允许 DTD 或实体定义");
+  if (/<(?:foreignObject|iframe|image|use|style|animate\w*|set|a)(?:[\s/>])/i.test(text)) problems.push("SVG 不允许嵌入内容、引用或动画元素");
+  if (/\s(?:style|href|xlink:href)\s*=|(?:javascript|data)\s*:|url\s*\(/i.test(text)) problems.push("SVG 不允许动态属性或资源引用");
   return problems;
 }
 
@@ -219,6 +224,10 @@ export function checkDir(dir, area, root = dir) {
       continue;
     }
     if (FONT_EXT.has(ext) && area !== "content") continue;
+    if (BUILD_FONT_EXT.has(ext) && area === "assets" && relative(dir, file).replaceAll("\\", "/").startsWith("og/")) {
+      if (size > HARD_LIMIT) results.push(...report(rel, ["构建字体超过 25 MiB"], []));
+      continue;
+    }
 
     const isImage = IMAGE_EXT.has(ext) || ext === ".svg";
     if (!isImage && !BLOCKED_EXT.has(ext)) {
@@ -228,7 +237,9 @@ export function checkDir(dir, area, root = dir) {
       results.push(...report(rel, fail, warn));
       continue;
     }
-    if (ext === ".svg" && area === "content") fail.push("文章中不允许上传 SVG（仅模板作者维护的图标可放在 static/ 或 assets/）");
+    if (ext === ".svg" && (area === "content" || (area === "assets" && relative(dir, file).replaceAll("\\", "/").startsWith("media/")))) {
+      fail.push("上传区不允许 SVG（图标上传请用 PNG/WebP；内联 SVG 只能由代码维护）");
+    }
 
     stats.images++;
     const { problems } = inspect(readFileSync(file), file);

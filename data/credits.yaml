@@ -5,6 +5,24 @@ software:
     license: Apache-2.0
     url: https://gohugo.io/
     source: https://github.com/gohugoio/hugo
+  - name: Waline Client
+    role: 可选免登录留言与回复；在独立评论面板运行，默认关闭，不进入博客脚本
+    license: MIT
+    url: https://waline.js.org/
+    source: https://github.com/walinejs/waline/tree/main/packages/client
+    note: 客户端 3.16.1 在独立构建中校验哈希并分发完整许可；服务与数据库另行配置。
+  - name: Waline Server / Admin
+    role: 独立评论服务候选，复用作者账号、审核和存储；不进入博客构建，云端未开通
+    license: GPL-2.0（上游 README 与实际许可）
+    url: https://waline.js.org/
+    source: https://github.com/walinejs/waline
+    note: 服务 1.43.4 精简分发 / 管理端 0.36.0 源码重建；保留许可与对应源码下载，详见 THIRD_PARTY_NOTICES.md。
+  - name: node-postgres
+    role: 独立评论服务候选的 PostgreSQL 驱动；不进入访客脚本
+    license: MIT
+    url: https://node-postgres.com/
+    source: https://github.com/brianc/node-postgres
+    note: pg 8.23.1；仅在独立服务安装和使用，数据库凭据不进入博客。
 
 fonts:
   - name: Google Sans Code
@@ -12,6 +30,11 @@ fonts:
     license: SIL OFL 1.1
     url: https://github.com/googlefonts/googlesans-code
     note: 网页文件来自 @fontsource-variable/google-sans-code 5.3.2。
+  - name: Noto Sans SC Regular
+    role: 只在构建时生成中文分享图片；字体文件不发布给访客
+    license: SIL OFL 1.1
+    url: https://github.com/notofonts/noto-cjk
+    note: 上游 2.004 简体中文 OTF 子集原文件，© 2014–2021 Adobe；许可随模板保存。
 
 # 视觉素材：本模板的示例图片为程序生成的抽象渐变图，无第三方素材。
 assets:
@@ -36,3 +59,7 @@ inspirations:
     url: https://blog.ryanstarfox.top/
     role: 点图查看大图的交互方式。
     note: 代码与样式为本模板独立编写；原站与本模板无关联。
+  - name: snarfed.org
+    url: https://snarfed.org/about
+    role: 长期个人身份、真实发布时间与更新时间、稳定内容地址的实践参考。
+    note: 未复制其文字、图片或代码；不采用其后端服务。

@@ -1,0 +1,21 @@
+{
+  "name": "quiet-journal-waline-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Isolated, default-locked Waline service for Vercel Hobby and Neon Free.",
+  "license": "MIT",
+  "engines": { "node": "24.x" },
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "test:postgres": "node test/postgres.cjs",
+    "test:admin": "node test/postgres.cjs --browser",
+    "start:local": "node scripts/local.cjs",
+    "backup": "node scripts/backup.cjs",
+    "audit:dependencies": "npm audit --omit=dev"
+  },
+  "dependencies": {
+    "@waline/admin": "file:vendor/waline-admin-0.36.0-qj.1.tgz",
+    "@waline/vercel": "file:vendor/waline-vercel-1.43.4-qj.1.tgz",
+    "pg": "8.23.1"
+  }
+}

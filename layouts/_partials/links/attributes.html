@@ -1,0 +1,2 @@
+{{- /* 只接收 links/resolve.html 的结果；先转义值，再作为完整属性插入。 */ -}}
+href="{{ .url }}"{{ if .new }} target="_blank"{{ end }}{{ with .rel }} rel="{{ . }}"{{ end }}

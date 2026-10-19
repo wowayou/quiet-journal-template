@@ -8,17 +8,14 @@
 //       带 GPS 原图经 Hugo 输出后无元数据、源文件检查失败关闭、改标题不改 URL、
 //       R2 provider 地址拼接、local provider 缺图时构建失败、无第三方脚本、img 有 alt/尺寸。
 
-import { cpSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { cpSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from "node:fs";
 import { join, dirname, relative, extname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { checkDir } from "./check-media.mjs";
-import { clean, jpegWithGps, webpWithGps, FAKE } from "./test/fixtures.mjs";
+import { clean, jpegWithGps, webpWithGps, pngSized, FAKE } from "./test/fixtures.mjs";
+import { fixture } from "./test/site-fixture.mjs";
 
-const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 const HUGO = process.env.HUGO || "hugo";
-const SKIP = new Set(["public", "resources", "node_modules", ".git", ".hugo_build.lock"]);
 
 let passed = 0;
 const failures = [];
@@ -35,7 +32,7 @@ function write(root, rel, data) {
 
 function hugo(root, extra = []) {
   rmSync(join(root, "public"), { recursive: true, force: true });
-  return spawnSync(HUGO, ["--gc", "--minify", "--source", root, ...extra], { encoding: "utf8" });
+  return spawnSync(HUGO, ["--gc", "--minify", "--source", root, ...extra], { encoding: "utf8", timeout: 60000 });
 }
 
 function files(dir) {
@@ -47,9 +44,23 @@ function files(dir) {
 
 const post = (fm, body = "") => `---\n${Object.entries(fm).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join("\n")}\n---\n\n${body}\n`;
 
-// ---------- 准备临时站点 ----------
-const root = mkdtempSync(join(tmpdir(), "qj-smoke-"));
-cpSync(repo, root, { recursive: true, filter: (src) => !SKIP.has(relative(repo, src).split(/[\\/]/)[0]) });
+// ---------- 准备临时站点（独立测试内容，不要求保留或发布模板示例） ----------
+const { root, cleanup } = fixture();
+rmSync(join(root, "content/posts"), { recursive: true });
+write(root, "content/posts/20261003-k3m9/index.md", post(
+  { title: "普通短记", date: "2020-10-03T10:00:00+08:00", kind: "note", featured: true, draft: false }, "短记正文。",
+));
+write(root, "content/posts/20261008-p2w6/index.md", post(
+  { title: "下雨天的书店", date: "2020-10-08T10:00:00+08:00", kind: "story", draft: false }, "## 出门\n\n文字。\n\n## 书店\n\n文字。\n\n## 回家\n\n文字。",
+));
+write(root, "content/posts/20261010-s8q4/index.md", post(
+  { title: "", date: "2020-10-10T10:00:00+08:00", kind: "note", draft: false }, "一篇没有标题的短记。",
+));
+write(root, "content/posts/20261012-h5c1/index.md", post(
+  { title: "图文测试", date: "2020-10-12T10:00:00+08:00", kind: "photo", draft: false }, "![一](one.png) ![二](two.webp)\n\n![三](three.webp)",
+));
+write(root, "content/posts/20261012-h5c1/one.png", pngSized(1800, 1200));
+for (const name of ["two", "three"]) write(root, `content/posts/20261012-h5c1/${name}.webp`, clean.webp());
 
 // 草稿：正文标记 + 文章内图片 + 只被草稿引用的全站图片
 write(root, "content/posts/20991231-drft/index.md", post(
@@ -89,7 +100,7 @@ if (b.status !== 0) finish();
 const pub = join(root, "public");
 const all = files(pub);
 const rel = all.map((f) => relative(pub, f).replaceAll("\\", "/"));
-const text = all.filter((f) => [".html", ".xml", ".css", ".js", ".txt"].includes(extname(f))).map((f) => [relative(pub, f), readFileSync(f, "utf8")]);
+const text = all.filter((f) => [".html", ".xml", ".json", ".css", ".js", ".txt"].includes(extname(f))).map((f) => [relative(pub, f), readFileSync(f, "utf8")]);
 
 for (const p of ["index.html", "archive/index.html", "about/index.html", "links/index.html", "credits/index.html", "404.html", "index.xml", "posts/index.html",
   "posts/20261003-k3m9/index.html", "posts/20261008-p2w6/index.html", "posts/20261012-h5c1/index.html", "posts/20261010-s8q4/index.html", "posts/20261001-gpst/index.html"]) {
@@ -130,7 +141,7 @@ const imgs = html.flatMap(([f, t]) => (t.match(/<img\b[^>]*>/g) || []).map((tag)
 // minify 会把装饰性图片的 alt="" 压缩成裸属性 alt，仍是合法的空 alt
 check(`所有 <img> 有 alt（${imgs.length} 个）`, imgs.every(([, t]) => /\salt(=|[\s>])/.test(t)));
 check("所有本地 <img> 有 width/height", imgs.every(([, t]) => /\bwidth=/.test(t) && /\bheight=/.test(t)));
-const ext = html.filter(([, t]) => /<(script|link)\b[^>]*(src|href)=["']?https?:\/\//i.test(t.replace(/<link[^>]*rel=["']?(canonical|alternate)[^>]*>/gi, "")));
+const ext = html.filter(([, t]) => /<(script|link)\b[^>]*(src|href)=["']?https?:\/\//i.test(t.replace(/<link[^>]*rel=["']?(canonical|alternate|me)[^>]*>/gi, "")));
 check("访客页面无第三方脚本/样式", ext.length === 0, ext.map(([f]) => f).join(", "));
 const referenced = new Set(text.flatMap(([, t]) => [...t.matchAll(/\/[^\s"'(),]+?\.(?:webp|svg|png|jpe?g)/g)].map((m) => m[0].replace(/^https?:\/\/[^/]+/, ""))));
 const unref = rel.filter((f) => /\.(webp|png|jpe?g)$/.test(f) && ![...referenced].some((r) => r.endsWith("/" + f)));
@@ -138,7 +149,12 @@ check("每个发布的图片都被页面引用", unref.length === 0, unref.join(
 const rss = readFileSync(join(pub, "index.xml"), "utf8");
 check("/admin/ 写作入口存在且固定版本、带 SRI", (() => { const a = readFileSync(join(pub, "admin/index.html"), "utf8"); return /@sveltia\/cms@\d+\.\d+\.\d+\//.test(a) && /integrity="sha384-/.test(a); })());
 check("robots.txt 禁止抓取 /admin/", /Disallow: \/admin\//.test(readFileSync(join(pub, "robots.txt"), "utf8")));
-check("CMS 配置未包含真实仓库名（模板占位）", readFileSync(join(pub, "admin/config.yml"), "utf8").includes("repo: OWNER/REPO") || process.env.QJ_INSTANCE === "1");
+const cmsConfig = readFileSync(join(pub, "admin/config.yml"), "utf8");
+if (process.env.QJ_INSTANCE === "1") {
+  check("实例 CMS 使用非占位的仓库配置", /^\s+repo:\s+(?!OWNER\/REPO\b)[\w.-]+\/[\w.-]+\s*(?:#.*)?$/m.test(cmsConfig));
+} else {
+  check("CMS 配置未包含真实仓库名（模板占位）", cmsConfig.includes("repo: OWNER/REPO"));
+}
 check("_headers 已输出", rel.includes("_headers"));
 check("RSS 含 5 篇已发布文章", (rss.match(/<item>/g) || []).length === 5, `实际 ${(rss.match(/<item>/g) || []).length}`);
 
@@ -152,6 +168,7 @@ check("页头有菜单按钮（aria-controls 指向导航）", /aria-controls="?
 check("页面中没有 id=top（回到顶部按规范滚到页首，不被吸顶页头吞掉）", !/id="?top"?[\s>]/.test(home) && /href="?#top"?/.test(home));
 check("只发布 2 个拉丁字体分片", rel.filter((f) => f.endsWith(".woff2")).length === 2);
 const ph = page("posts/20261012-h5c1/index.html");
+check("宽图生成 640/1024/1600 三档响应式尺寸", [640, 1024, 1600].every((width) => ph.includes(` ${width}w`)));
 const zooms = [...ph.matchAll(/<a class="?media__zoom"? href="?([^" >]+)/g)].map((m) => m[1]);
 check("文章图片包放大链接，指向已发布的重新编码图片", zooms.length === 3 && zooms.every((h) => rel.includes(h.replace(/^\//, "")) && /_hu_/.test(h)), zooms.join(", "));
 check("随笔（≥3 个小标题）有目录", /class="?toc"?/.test(page("posts/20261008-p2w6/index.html")));
@@ -179,7 +196,7 @@ console.log("\n[5c] 不绑定编辑器：删除 static/admin/ 仍可构建");
 console.log("\n[6] 改标题不改 URL");
 {
   const f = join(root, "content/posts/20261008-p2w6/index.md");
-  writeFileSync(f, readFileSync(f, "utf8").replace("title: 下雨天的书店", "title: 完全不同的新标题"));
+  writeFileSync(f, readFileSync(f, "utf8").replace('title: "下雨天的书店"', 'title: "完全不同的新标题"'));
   const r = hugo(root);
   const page = join(root, "public/posts/20261008-p2w6/index.html");
   check("改标题后 /posts/20261008-p2w6/ 仍存在且显示新标题", r.status === 0 && existsSync(page) && readFileSync(page, "utf8").includes("完全不同的新标题"));
@@ -207,7 +224,7 @@ write(root, "config/r2test/hugo.toml", '[params.media]\n  provider = "r2"\n  [pa
 finish();
 
 function finish() {
-  rmSync(root, { recursive: true, force: true });
+  cleanup();
   console.log(`\n冒烟测试：${passed} 项通过，${failures.length} 项失败`);
   if (failures.length) console.log("失败项：\n  - " + failures.join("\n  - "));
   process.exit(failures.length ? 1 : 0);

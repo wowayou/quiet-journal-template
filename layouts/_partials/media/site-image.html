@@ -1,0 +1,11 @@
+{{- /* CMS 上传的图标只走本地位图；不把上传的 SVG 以内联代码执行。 */ -}}
+{{- $out := false -}}
+{{- with .src -}}
+  {{- if or (not (findRE `^/media/[a-zA-Z0-9_./-]+\.(png|jpe?g|webp)$` .)) (in (split . "/") "..") }}{{ errorf "图标/站点图片必须是 /media/ 下的 PNG、JPEG 或 WebP，不能包含 ..：%q" . }}{{ end -}}
+  {{- with resources.Get (strings.TrimPrefix "/" .) -}}
+    {{- if in (slice "image/png" "image/jpeg" "image/webp") .MediaType.Type -}}
+      {{- $out = . -}}
+    {{- else }}{{ errorf "不支持的站点图片格式：%s" .Name }}{{ end -}}
+  {{- else }}{{ errorf "找不到站点图片 %q。请先上传，或清空该字段。" . }}{{ end -}}
+{{- end -}}
+{{- return $out -}}

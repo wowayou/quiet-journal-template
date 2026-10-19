@@ -1,0 +1,37 @@
+{{- /* 分享卡片优先使用已引用的本地图片，否则构建文字卡片。不会发起网络请求。 */ -}}
+{{- $page := . -}}
+{{- $config := hugo.Data.site -}}
+{{- $out := dict -}}
+{{- $source := .Params.cover | default "" -}}
+{{- if and (not $source) .IsPage }}{{ $source = index (partial "post-images.html" .) 0 | default "" }}{{ end -}}
+{{- $image := false -}}
+{{- $alt := "" -}}
+{{- if $source -}}
+  {{- $media := partial "media/resolve.html" (dict "page" . "src" $source) -}}
+  {{- if eq $media.kind "resource" }}{{ $image = $media.resource }}{{ if .Params.cover }}{{ $alt = .Params.cover_alt }}{{ end }}{{ end -}}
+{{- end -}}
+{{- if not $image -}}
+  {{- with $config.sharing.image }}{{ $image = partial "media/site-image.html" (dict "src" .) }}{{ $alt = $config.sharing.image_alt }}{{ end -}}
+{{- end -}}
+{{- $title := partial "title.html" . -}}
+{{- if .IsHome }}{{ $title = $config.title | default site.Title }}{{ end -}}
+{{- if $image -}}
+  {{- $card := $image.Fill "1200x630 jpg q82 Smart" -}}
+  {{- $out = dict "image" $card "alt" ($alt | default (printf "%s的分享封面" $title)) -}}
+{{- else if ne $config.sharing.generate false -}}
+  {{- $font := resources.Get "og/NotoSansSC-Regular.otf" -}}
+  {{- $background := resources.Get "og/background.png" -}}
+  {{- $name := $config.title | default site.Title | truncate 32 -}}
+  {{- $lines := delimit (findRE `.{1,18}` ($title | plainify | truncate 52 "…")) "\n" -}}
+  {{- $desc := .Params.description | default (partial "summary.html" (dict "page" . "length" 50)) | default $config.description | plainify -}}
+  {{- $subtitle := delimit (findRE `.{1,32}` ($desc | replaceRE `\s+` " " | truncate 60 "…")) "\n" -}}
+  {{- $host := (urls.Parse site.BaseURL).Host -}}
+  {{- $card := $background.Filter
+    (images.Text $name (dict "font" $font "size" 28 "color" "#5d6878" "x" 72 "y" 56))
+    (images.Text $lines (dict "font" $font "size" 54 "color" "#1f2733" "x" 72 "y" 162 "linespacing" 18))
+    (images.Text $subtitle (dict "font" $font "size" 28 "color" "#5d6878" "x" 72 "y" 423 "linespacing" 12))
+    (images.Text $host (dict "font" $font "size" 24 "color" "#c2410c" "x" 72 "y" 550)) -}}
+  {{- $card = $card.Process "jpg q82" -}}
+  {{- $out = dict "image" $card "alt" (printf "%s · %s" $title $name) -}}
+{{- end -}}
+{{- return $out -}}

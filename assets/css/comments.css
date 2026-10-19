@@ -1,0 +1,10 @@
+.comments { margin-top: var(--space-6); border-top: 1px solid var(--line); padding-top: var(--space-5); }
+.comments h2 { font-size: var(--text-xl); }
+.comments p { color: var(--muted); line-height: var(--prose-line-height); }
+.comments__actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.comments__actions button, .comments__actions a { display: inline-flex; align-items: center; min-height: 44px; }
+.comments__actions button { padding: var(--space-2) var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--fg); background: var(--bg); font: inherit; cursor: pointer; }
+.comments__actions button:hover { border-color: var(--accent); color: var(--accent); }
+.comments__actions [hidden] { display: none; }
+.comments__status { font-size: .875rem; }
+.comments__frame { display: block; width: 100%; height: 640px; height: min(80svh, 800px); min-height: 360px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--bg); }

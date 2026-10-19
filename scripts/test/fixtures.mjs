@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { deflateSync } from "node:zlib";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const clean = {
@@ -109,6 +110,25 @@ export function pngWithText(src = clean.png()) {
   const crc = Buffer.alloc(4);
   crc.writeUInt32BE(crc32(Buffer.concat([head.subarray(4), data])), 0);
   return Buffer.concat([src.subarray(0, 33), head, data, crc, src.subarray(33)]); // IHDR 之后
+}
+
+/** Synthetic RGB PNG for aspect-ratio boundary tests; no metadata or external tools. */
+export function pngSized(width, height) {
+  const chunk = (name, data) => {
+    const body = Buffer.concat([Buffer.from(name), data]);
+    const size = Buffer.alloc(4); size.writeUInt32BE(data.length);
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(body));
+    return Buffer.concat([size, body, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width); header.writeUInt32BE(height, 4);
+  header[8] = 8; header[9] = 2;
+  const pixels = Buffer.alloc((width * 3 + 1) * height, 160);
+  for (let y = 0; y < height; y++) pixels[y * (width * 3 + 1)] = 0;
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header),
+    chunk("IDAT", deflateSync(pixels)), chunk("IEND", Buffer.alloc(0)),
+  ]);
 }
 
 function crc32(buf) {

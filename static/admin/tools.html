@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>内容导入、导出与迁移 · Quiet Journal</title>
+  <link rel="stylesheet" href="./host.css">
+</head>
+<body class="qj-tools">
+<main>
+  <p><a href="./">返回写作界面</a></p>
+  <h1>带走内容，不绑住编辑器</h1>
+  <p>文章仍是 Markdown，图片仍在原路径。本轮提供<strong>电脑上的本地内容传输工具</strong>，不是手机上的整库写入按钮。本页不读取登录令牌，不拉取私有文章，也不会提交或发布任何内容。</p>
+  <p class="qj-note">导出包含草稿、未引用图片、联系方式等个人设置。不要上传到公开仓库或临时分享网站。它是当前内容快照，不包含已删除版本、Git 历史、主题或部署配置。</p>
+
+  <h2>1. 导出当前内容</h2>
+  <p>先保存 CMS 工作，在电脑上同步最新仓库、暂时停止同时编辑。进入博客仓库目录，运行：</p>
+  <pre><code>npm run content:export -- --output ../journal-content --include-private</code></pre>
+  <p>输出必须是<strong>工作区之外的新目录</strong>，父目录需已存在。已有目录（即使为空）不会被覆盖。输出包含 <code>manifest.json</code> 和 <code>files/</code>；清单记录路径、字节数和 SHA-256 文件校验值。可以自行把整个目录压缩保存，但工具不直接解包 ZIP。</p>
+
+  <h2>2. 检查与迁移预览</h2>
+  <pre><code>npm run content:inspect -- --source ../journal-content --compare .</code></pre>
+  <p>校验包的版本、完整性、路径、类型与媒体元数据，再与当前站点只读比较：<code>add</code> 新增、<code>same</code> 相同、<code>conflict</code> 冲突。冲突不会自动覆盖，目标里独有的文件也不会删除。不比较时可去掉 <code>--compare .</code>。</p>
+
+  <h2>3. 导入到隔离目录</h2>
+  <pre><code>npm run content:import -- --source ../journal-content --output ../journal-review --include-private</code></pre>
+  <p>只恢复到新的 <code>journal-review/</code>，附 <code>IMPORT-REPORT.json</code>。<strong>原有公开/草稿标记保持不变</strong>，不会擅自设为公开，也不会替你发布。把文章纳入使用中的站点之前，先审查内容、图片、设置和地址；拿不准时先设为草稿。</p>
+  <p>在有备份的更新分支上逐项合并，保留目标站的仓库、域名、后台与主题配置，再运行 <code>npm run build</code>。不要将整个快照目录直接复制到 <code>static/</code> 或 <code>public/</code>。确认发布意图后才推送；推送可能触发已有云端构建。</p>
+
+  <h2>明确不做的事</h2>
+  <ul>
+    <li>只支持 Quiet Journal 的文件契约，不承诺直接转换 WordPress、Notion、任意 Markdown 插件或外链图片。</li>
+    <li>不导出令牌、后台配置、Worker/DNS 配置、主题代码和 Git 历史；正文或设置里自己写入的敏感文字不会被自动识别、删除。</li>
+    <li>不原地覆盖站点，不自动改 URL、合并冲突、抓取远程图片、清理旧图或重写历史。</li>
+    <li>单次上限 10,000 文件、单文件 25 MiB、总量 1 GiB。带元数据图片、HEIC 原图、动图、SVG 和代码文件会拒绝，不能靠导入绕过媒体防线。</li>
+    <li>完整备份、第三方平台转换、换域名与 R2 迁移是不同任务；需要各自的来源格式、权限和回滚方案。</li>
+  </ul>
+  <p>更详细的格式、恢复与迁移说明见仓库的 <code>docs/TRANSFER.md</code>。手机日常写作仍用原来的 CMS，不需要额外密钥或服务。</p>
+</main>
+</body>
+</html>

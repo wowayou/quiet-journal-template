@@ -1,0 +1,9 @@
+{{- $config := partialCached "comments/config.html" . "comments-config" -}}
+{{- $result := dict -}}
+{{- $published := and (not .Draft) (not (.Date.After now)) (or .ExpiryDate.IsZero (.ExpiryDate.After now)) -}}
+{{- if and $config.enabled .IsPage (eq .Section "posts") $published (not .Params.noindex) (not hugo.IsServer) (eq hugo.Environment "production") -}}
+  {{- $allowed := true -}}
+  {{- if isset .Params "comments" }}{{ $allowed = .Params.comments }}{{ end -}}
+  {{- if eq $allowed true }}{{ $result = dict "origin" $config.origin "key" (partial "comments/key.html" .) }}{{ end -}}
+{{- end -}}
+{{- return $result -}}

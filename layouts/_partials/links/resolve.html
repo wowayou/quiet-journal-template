@@ -1,0 +1,28 @@
+{{- /* URL 与打开方式唯一规则。禁止可执行协议、协议相对地址、凭证及控制字符。 */ -}}
+{{- $url := strings.TrimSpace (.url | default "") -}}
+{{- $target := .target | default "auto" -}}
+{{- $context := .context | default "链接" -}}
+{{- if or (not $url) (gt (len $url) 4096) (findRE `[\x00-\x20\x7f\\]` $url) (hasPrefix $url "//") -}}
+  {{- errorf "%s：无效链接 %q。请使用站内路径、https://、mailto: 或 tel:。" $context $url -}}
+{{- end -}}
+{{- $parsed := urls.Parse "" -}}
+{{- with try (urls.Parse $url) -}}
+  {{- with .Err }}{{ errorf "%s：链接无法解析：%s" $context . }}{{ else }}{{ $parsed = .Value }}{{ end -}}
+{{- end -}}
+{{- $scheme := lower $parsed.Scheme -}}
+{{- if or (not (in (slice "" "http" "https" "mailto" "tel") $scheme)) $parsed.User (hasPrefix $parsed.Path "//") (findRE `[\x00-\x1f\x7f\\]` $parsed.Path) -}}
+  {{- errorf "%s：不允许的链接 %q。" $context $url -}}
+{{- end -}}
+{{- $web := in (slice "http" "https") $scheme -}}
+{{- if and $web (not $parsed.Host) }}{{ errorf "%s：网址缺少域名：%q" $context $url }}{{ end -}}
+{{- if not (in (slice "auto" "same" "new") $target) }}{{ errorf "%s：打开方式必须是 auto、same 或 new。" $context }}{{ end -}}
+{{- $base := urls.Parse site.BaseURL -}}
+{{- /* /about/ 表示站点根下的页面；也兼容部署在 /journal/ 等子路径。 */ -}}
+{{- if and (eq $scheme "") (hasPrefix $url "/") (not (hasPrefix $url $base.Path)) }}{{ $url = strings.TrimPrefix "/" $url | relURL }}{{ end -}}
+{{- $external := and $web (or (ne (lower $parsed.Host) (lower $base.Host)) (ne $scheme (lower $base.Scheme))) -}}
+{{- $new := and (or $web (eq $scheme "")) (or (eq $target "new") (and (eq $target "auto") $external (ne (hugo.Data.site.links.external_target | default "new") "same"))) -}}
+{{- $rel := slice -}}
+{{- if $external }}{{ $rel = $rel | append "external" }}{{ end -}}
+{{- if $new }}{{ $rel = $rel | append "noopener" "noreferrer" }}{{ end -}}
+{{- if .me }}{{ $rel = $rel | append "me" }}{{ end -}}
+{{- return (dict "url" $url "external" $external "new" $new "rel" (delimit $rel " ")) -}}

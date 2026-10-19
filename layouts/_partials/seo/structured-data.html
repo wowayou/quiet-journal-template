@@ -1,0 +1,14 @@
+{{- $page := .page -}}
+{{- $config := hugo.Data.site -}}
+{{- $kind := "WebPage" -}}
+{{- if $page.IsHome }}{{ $kind = "WebSite" }}{{ else if and $page.IsPage (eq $page.Section "posts") }}{{ $kind = "BlogPosting" }}{{ end -}}
+{{- $data := dict "@context" "https://schema.org" "@type" $kind "name" .title "url" .url "description" .description "inLanguage" site.Language.Locale -}}
+{{- if eq $kind "BlogPosting" -}}
+  {{- $data = merge $data (dict "headline" .title "mainEntityOfPage" .url "author" (dict "@type" "Person" "name" $config.author "url" site.Home.Permalink)) -}}
+{{- end -}}
+{{- if $page.IsPage -}}
+  {{- if not $page.Date.IsZero }}{{ $data = merge $data (dict "datePublished" ($page.Date.Format "2006-01-02T15:04:05Z07:00")) }}{{ end -}}
+  {{- if not $page.Lastmod.IsZero }}{{ $data = merge $data (dict "dateModified" ($page.Lastmod.Format "2006-01-02T15:04:05Z07:00")) }}{{ end -}}
+{{- end -}}
+{{- with .image }}{{ $data = merge $data (dict "image" .Permalink) }}{{ end -}}
+<script type="application/ld+json">{{ $data | jsonify | safeJS }}</script>

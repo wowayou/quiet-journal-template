@@ -1,0 +1,8 @@
+{{- /* 列表型页面共用：标题、真实日期、简介和正文。新布局可复用此组件。 */ -}}
+{{- $page := .page -}}
+<header class="page-header">
+  <h1 class="page-header__title">{{ partial "title.html" $page }}</h1>
+  {{- if or (not $page.Date.IsZero) (not $page.Lastmod.IsZero) }}{{ partial "post-meta.html" (dict "page" $page "updates" true) }}{{ end }}
+  {{- with .description }}<p class="page-header__desc">{{ . }}</p>{{ end }}
+  {{- with $page.Content }}<div class="page-header__desc prose">{{ . }}</div>{{ end }}
+</header>

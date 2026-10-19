@@ -1,0 +1,13 @@
+{{- /* 单一响应头来源。禁止遗留静态文件与生成产物争抢路径。 */ -}}
+{{- if fileExists "static/_headers" }}{{ errorf "请将 static/_headers 的定制合并到 assets/server/headers.txt 并移除旧文件，避免响应头被覆盖。" }}{{ end -}}
+{{- $source := resources.Get "server/headers.txt" -}}
+{{- if not $source }}{{ errorf "缺少 assets/server/headers.txt 安全响应头来源。" }}{{ end -}}
+{{- $framePolicy := "" -}}
+{{- $config := partialCached "comments/config.html" . "comments-config" -}}
+{{- if $config.enabled }}{{ $framePolicy = printf "frame-src %s; " $config.origin }}{{ end -}}
+{{- $text := $source.Content -}}
+{{- if ne (len (findRE "__QJ_COMMENT_FRAME_POLICY__" $text)) 1 }}{{ errorf "headers.txt 必须恰好保留一个评论 frame-src 占位符。" }}{{ end -}}
+{{- $text = replace $text "__QJ_COMMENT_FRAME_POLICY__" $framePolicy -}}
+{{- $headers := resources.FromString "_headers" $text -}}
+{{- $published := $headers.RelPermalink -}}
+{{- return true -}}

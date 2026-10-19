@@ -1,0 +1,11 @@
+# 日常设置，可在 CMS 拖动排序/启停。不启用的挂件不输出 HTML、脚本、样式或数据。
+- id: search
+  type: search
+  title: 找一段文字
+  enabled: true
+  slot: home-after-intro
+- id: answers
+  type: answers
+  title: 答案之书
+  enabled: false
+  slot: content-after

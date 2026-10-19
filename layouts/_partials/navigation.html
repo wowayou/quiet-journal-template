@@ -1,0 +1,25 @@
+{{- /* 导航内部引用以页面 ID 保存，不依赖标题。旧 url 格式仍兼容，由产物检查兜底。 */ -}}
+{{- $items := slice -}}
+{{- range hugo.Data.site.nav -}}
+  {{- $url := .url | default "" -}}
+  {{- $type := .type | default "legacy" -}}
+  {{- if eq $type "home" -}}
+    {{- $url = site.Home.RelPermalink -}}
+  {{- else if eq $type "page" -}}
+    {{- $page := site.GetPage (.page | default "__missing__") -}}
+    {{- if or (not $page) (and $page (or $page.Draft ($page.Date.After now) (not ($page.OutputFormats.Get "html")))) -}}
+      {{- errorf "导航 %q：站内页面 %q 不存在或未发布。先发布页面，再加入导航；撤下前先移除导航。" .label .page -}}
+    {{- else -}}
+      {{- $url = $page.RelPermalink -}}
+    {{- end -}}
+  {{- else if eq $type "external" -}}
+    {{- if not (findRE `^https?://` $url) }}{{ errorf "导航 %q：外部链接须以 http:// 或 https:// 开头。" .label }}{{ end -}}
+  {{- else if ne $type "legacy" -}}
+    {{- errorf "导航 %q：未知类型 %q。" .label $type -}}
+  {{- end -}}
+  {{- if not .label }}{{ errorf "每条导航必须有名称（纯图标也需要无障碍名称）。" }}{{ end -}}
+  {{- if and .icon_only (not (or .icon .icon_image)) }}{{ errorf "导航 %q：只显示图标时必须选择或上传图标。" .label }}{{ end -}}
+  {{- $link := partial "links/resolve.html" (dict "url" $url "target" .target "context" (printf "导航 %q" .label)) -}}
+  {{- $items = $items | append (merge . (dict "link" $link)) -}}
+{{- end -}}
+{{- return $items -}}

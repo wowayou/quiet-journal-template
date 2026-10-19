@@ -1,8 +1,14 @@
-{{- /*
-  内联 SVG 图标。参数：name（assets/icons/<name>.svg）、size（像素，默认 20）、class。
-  品牌图标来自 simple-icons（CC0）；线条图标为本模板绘制。找不到时用 link 图标。
-*/ -}}
-{{- $r := resources.Get (printf "icons/%s.svg" .name) | default (resources.Get "icons/link.svg") -}}
+{{- /* 内建图标由模板维护；image 是 CMS 上传的本地位图（优先，不内联 SVG）。 */ -}}
 {{- $size := .size | default 20 -}}
-{{- $attrs := printf `<svg class="icon %s" width="%d" height="%d" aria-hidden="true" focusable="false" ` (.class | default "") $size $size -}}
-{{- replace (strings.TrimSpace $r.Content) "<svg " $attrs | safeHTML -}}
+{{- if .image -}}
+  {{- with partial "media/site-image.html" (dict "src" .image) -}}
+    {{- $image := .Fit "64x64 webp q85" -}}
+    <img class="icon icon--uploaded" src="{{ $image.RelPermalink }}" width="{{ $size }}" height="{{ $size }}" alt="" aria-hidden="true" decoding="async">
+  {{- end -}}
+{{- else -}}
+  {{- $name := .name | default "link" -}}
+  {{- if not (findRE `^[a-z0-9][a-z0-9-]*$` $name) }}{{ errorf "无效的内建图标名 %q" $name }}{{ end -}}
+  {{- $r := resources.Get (printf "icons/%s.svg" $name) | default (resources.Get "icons/link.svg") -}}
+  {{- $attrs := printf `<svg class="icon %s" width="%d" height="%d" aria-hidden="true" focusable="false" ` (.class | default "") $size $size -}}
+  {{- replace (strings.TrimSpace $r.Content) "<svg " $attrs | safeHTML -}}
+{{- end -}}

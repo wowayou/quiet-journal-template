@@ -1,0 +1,15 @@
+{{- /* RSS 阅读器不应依赖本站页面位置或 srcset；图片与链接都转成绝对 URL。 */ -}}
+{{- $html := .Content | replaceRE `\s+(srcset|sizes)="[^"]*"` "" -}}
+{{- $base := urls.Parse .Permalink -}}
+{{- range findRE `(href|src)="[^"]+"` $html | uniq -}}
+  {{- $parts := split . "=\"" -}}
+  {{- $attribute := index $parts 0 -}}
+  {{- $value := index $parts 1 | strings.TrimSuffix "\"" | htmlUnescape -}}
+  {{- $url := urls.Parse $value -}}
+  {{- if not $url.IsAbs -}}
+    {{- $absolute := $base.ResolveReference $url -}}
+    {{- $replacement := printf `%s="%s"` $attribute ($absolute.String | htmlEscape) -}}
+    {{- $html = replace $html . $replacement -}}
+  {{- end -}}
+{{- end -}}
+{{- return $html -}}

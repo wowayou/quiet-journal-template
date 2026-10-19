@@ -4,11 +4,11 @@
 {{- $toc := and $isPost (ge (len (findRE `<h2[\s>]` .Content)) 3) }}
 <article class="entry{{ if $isPost }} entry--{{ $kind }}{{ end }}">
   {{- if $isPost }}
-  <a class="back-link" href="{{ "/" | relURL }}">{{ partial "icon.html" (dict "name" "arrow-right" "size" 16) }}返回</a>
+  <a class="back-link" href="{{ site.Home.RelPermalink }}">{{ partial "icon.html" (dict "name" "arrow-right" "size" 16) }}返回</a>
   {{- end }}
   <header class="entry__header{{ if not $isPost }} page-header{{ end }}">
     <h1 class="{{ if $isPost }}entry__title{{ else }}page-header__title{{ end }}">{{ partial "title.html" . }}</h1>
-    {{- if $isPost }}{{ partial "post-meta.html" (dict "page" .) }}{{ end }}
+    {{- if or (not .Date.IsZero) (not .Lastmod.IsZero) }}{{ partial "post-meta.html" (dict "page" . "updates" true) }}{{ end }}
     {{- if and $isPost (ne $kind "note") }}{{ with .Params.summary }}<p class="entry__lede">{{ . }}</p>{{ end }}{{ end }}
   </header>
 
@@ -30,4 +30,5 @@
   </footer>
   {{- end }}
 </article>
+{{- partial "comments/render.html" . }}
 {{- end }}

@@ -1,0 +1,63 @@
+/* Own shell only; do not patch the reviewed, source-rebuilt admin bundle. */
+html .waline-brand-mark {
+  background-image: url('/avatar.svg');
+}
+.qj-admin-notice {
+  margin: 0;
+  padding: .65rem 1rem;
+  background: #f1f5f9;
+  color: #334155;
+  font: 14px/1.5 system-ui, sans-serif;
+  text-align: center;
+}
+.qj-admin-license {
+  margin: 0;
+  padding: .35rem 1rem .65rem;
+  color: #334155;
+  background: #f1f5f9;
+  font: 13px/1.6 system-ui, sans-serif;
+  text-align: center;
+}
+.qj-admin-license a {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+/* These are usability hints, not permissions: the server rejects the endpoints. */
+html a[href$='/ui/forgot'],
+html a[href$='/ui/migration'],
+html[data-mode='public'] a[href$='/ui/register'] {
+  display: none !important;
+}
+/* The pinned bundle's remaining banner concerns LeanCloud, not this PG service. */
+html .upgrade-tips {
+  display: none;
+}
+@media (max-width: 600px) {
+  html .waline-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px;
+  }
+  html .waline-header .operate {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  html .waline-nav {
+    flex-basis: 100%;
+  }
+  html .main {
+    padding: 12px;
+  }
+  html .main .body.container {
+    padding: 12px;
+  }
+  html .typecho-table-wrap {
+    padding: 0;
+    overflow-x: auto;
+  }
+  /* Keep columns readable; scroll only the table, never shrink the whole UI. */
+  html .typecho-list-table {
+    min-width: 600px;
+  }
+}

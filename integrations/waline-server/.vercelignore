@@ -1,0 +1,15 @@
+# Only this independent server project may be uploaded.
+node_modules
+.env
+.env.*
+.vercel
+.git
+README.md
+test
+scripts
+sql
+*.dump
+*.backup
+*.pem
+*.key
+coverage

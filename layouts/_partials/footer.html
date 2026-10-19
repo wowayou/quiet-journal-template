@@ -1,20 +1,41 @@
-{{- /* 页脚：居中；一句话（可空）、社交图标、版权、回到顶部。设置见 data/site.yaml 的 footer。 */ -}}
+{{- /* 页脚：个人表达、联系订阅与版权分组；保留 footer 的原有开关和纯文字输入。 */ -}}
 {{- $site := hugo.Data.site -}}
 {{- $f := $site.footer | default dict -}}
+{{- $rss := site.Home.OutputFormats.Get "rss" -}}
 {{- $posts := where site.RegularPages "Section" "posts" -}}
 {{- $since := now.Year -}}
 {{- with $posts }}{{ $since = (index (last 1 .) 0).Date.Year }}{{ end -}}
 <footer class="site-footer">
   <div class="site-footer__inner wrap">
-    {{- with $f.quote }}<p class="site-footer__quote">{{ . }}</p>{{ end }}
-    {{- partial "social.html" (dict "rss" $f.show_rss) }}
-    <div class="site-footer__legal">
-      <p>© {{ if lt $since now.Year }}{{ $since }}–{{ end }}{{ now.Year }} {{ $site.author }}{{ with $f.content_license }} · {{ . }}{{ end }}</p>
-      {{- if $f.show_built_with }}<p>Built with <a href="https://gohugo.io/">Hugo</a></p>{{ end }}
+    <div class="site-footer__top">
+      <div class="site-footer__identity">
+        <p class="site-footer__name">{{ $site.title | default site.Title }}</p>
+        {{- with $f.quote }}<p class="site-footer__quote">{{ . }}</p>{{ end }}
+      </div>
+      {{- if or $site.social (and $f.show_rss $rss) }}
+      <div class="site-footer__connect">
+        <p class="site-footer__label">{{ if $site.social }}在别处{{ else }}保持联系{{ end }}</p>
+        {{- partial "social.html" (dict "rss" false) }}
+        {{- if $f.show_rss }}{{ with $rss }}
+        <a class="site-footer__rss" href="{{ .RelPermalink }}">{{ partial "icon.html" (dict "name" "rss" "size" 16) }}RSS 订阅</a>
+        {{- end }}{{ end }}
+      </div>
+      {{- end }}
     </div>
-    {{- if ne $f.back_to_top false }}
-    {{- /* #top 没有对应元素时，浏览器按规范滚动到页面顶部 */}}
-    <a class="back-to-top" href="#top">{{ partial "icon.html" (dict "name" "arrow-up" "size" 16) }}回到顶部</a>
-    {{- end }}
+    <div class="site-footer__bottom">
+      <div class="site-footer__legal">
+        <p>© {{ if lt $since now.Year }}{{ $since }}–{{ end }}{{ now.Year }} {{ $site.author }}{{ with $f.content_license }} · {{ . }}{{ end }}</p>
+        {{- if or $f.show_built_with $f.show_template_credit }}
+        <div class="site-footer__credits">
+          {{- if $f.show_built_with }}{{ $link := partial "links/resolve.html" (dict "url" "https://gohugo.io/") }}<p>Built with <a {{ partial "links/attributes.html" $link | safeHTMLAttr }}>Hugo{{ partial "links/notice.html" $link }}</a></p>{{ end }}
+          {{- if $f.show_template_credit }}{{ $link := partial "links/resolve.html" (dict "url" "https://github.com/wowayou/quiet-journal-template") }}<p class="template-credit"><a {{ partial "links/attributes.html" $link | safeHTMLAttr }}>{{ partial "icon.html" (dict "name" "github" "size" 16) }}Quiet Journal{{ partial "links/notice.html" $link }}</a></p>{{ end }}
+        </div>
+        {{- end }}
+      </div>
+      {{- if ne $f.back_to_top false }}
+      {{- /* #top 没有对应元素时，浏览器按规范滚动到页面顶部 */}}
+      <a class="back-to-top" href="#top">{{ partial "icon.html" (dict "name" "arrow-up" "size" 16) }}回到顶部</a>
+      {{- end }}
+    </div>
   </div>
 </footer>

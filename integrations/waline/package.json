@@ -1,0 +1,10 @@
+{
+  "name": "quiet-journal-waline-panel",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": { "build": "node build.mjs" },
+  "dependencies": { "@waline/client": "3.16.1" }
+}

@@ -1,0 +1,35 @@
+{{- /* 校验最终输出路径，而不只检查文件名；url、slug、别名不能覆盖后台、资源或其他页面。 */ -}}
+{{- $basePath := (urls.Parse site.BaseURL).Path -}}
+{{- $reserved := slice "admin" "css" "js" "fonts" "media" "og" "search" "page" "404.html" "robots.txt" "sitemap.xml" "favicon.svg" "_headers" "_redirects" -}}
+{{- $routes := slice -}}
+{{- range site.Pages -}}
+  {{- $page := . -}}
+  {{- $source := printf "%s (%s)" .Kind .Path -}}
+  {{- with .File }}{{ $source = .Path }}{{ end -}}
+  {{- range .OutputFormats -}}
+    {{- $index := printf "%s%s" .Format.BaseName .MediaType.FirstSuffix.FullSuffix -}}
+    {{- $routes = $routes | append (dict "url" .RelPermalink "source" $source "index" $index "home" $page.IsHome "alias" false) -}}
+  {{- end -}}
+  {{- range .Aliases -}}
+    {{- /* Hugo 0.167 已把别名解析为站点相对路径；不再次按当前页解析。 */ -}}
+    {{- $routes = $routes | append (dict "url" (. | relURL) "source" (printf "%s 的别名" $source) "index" "index.html" "home" false "alias" true) -}}
+  {{- end -}}
+{{- end -}}
+{{- $seen := dict -}}
+{{- range $routes -}}
+  {{- $path := strings.TrimPrefix "/" (strings.TrimPrefix $basePath (urls.Parse .url).Path) -}}
+  {{- $first := index (split $path "/") 0 -}}
+  {{- if or (in $reserved $first) (and (not .home) (in (slice "index.html" "index.xml") $first)) -}}
+    {{- errorf "%s：%s 占用了系统保留路径，请选择其他页面地址或别名。" .source .url -}}
+  {{- end -}}
+  {{- $target := $path -}}
+  {{- if or (hasSuffix .url "/") (and .alias (ne (path.Ext $path) ".html")) -}}
+    {{- $target = path.Join $path .index -}}
+  {{- end -}}
+  {{- $target = path.Clean $target -}}
+  {{- if isset $seen $target -}}
+    {{- errorf "页面输出路径冲突：%s 与 %s → /%s。入口、页面和别名必须使用不同地址。" (index $seen $target) .source $target -}}
+  {{- end -}}
+  {{- $seen = merge $seen (dict $target .source) -}}
+{{- end -}}
+{{- return true -}}

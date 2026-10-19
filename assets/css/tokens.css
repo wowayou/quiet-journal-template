@@ -63,6 +63,10 @@
   --motion-fast: 160ms;
   --motion-base: 320ms;
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* 图标反馈扩展接口；在 overrides.css 中设为 0 / 1 即可取消或定制。 */
+  --icon-hover-y: -2px;
+  --icon-hover-rotate: -5deg;
+  --icon-hover-scale: 1.08;
 }
 
 /* 深浅色：<html data-theme> = light | dark | auto（跟随系统） */

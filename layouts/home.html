@@ -3,16 +3,25 @@
 {{- $hero := $site.hero | default dict }}
 {{- $posts := where site.RegularPages "Section" "posts" }}
 {{- $pager := .Paginate $posts }}
-<section class="hero">
-  <h1 class="hero__title">
-    <span>{{ $hero.title | default ($site.title | default site.Title) }}</span>
-    {{- with site.Home.OutputFormats.Get "rss" }}<a class="hero__rss" href="{{ .RelPermalink }}" aria-label="RSS 订阅" title="RSS 订阅">{{ partial "icon.html" (dict "name" "rss" "size" 22) }}</a>{{ end }}
-  </h1>
-  {{- with $hero.text }}<div class="hero__text">{{ . | markdownify }}</div>{{ end }}
-  {{- with $site.social }}
-  <div class="hero__social"><span class="hero__social-label">在别处：</span>{{ partial "social.html" (dict "rss" false) }}</div>
-  {{- end }}
+<section class="hero" aria-labelledby="welcome-title">
+  <div class="hero__heading">
+    {{- partial "home/artwork.html" . }}
+    {{- with $site.description }}<p class="hero__eyebrow">{{ . }}</p>{{ end }}
+    <h1 class="hero__title" id="welcome-title">
+      <span>{{ $hero.title | default ($site.title | default site.Title) }}</span>
+      {{- with site.Home.OutputFormats.Get "rss" }}<a class="hero__rss" href="{{ .RelPermalink }}" aria-label="RSS 订阅" title="RSS 订阅">{{ partial "icon.html" (dict "name" "rss" "size" 22) }}</a>{{ end }}
+    </h1>
+  </div>
+  <div class="hero__copy">
+    {{- with $hero.text }}<div class="hero__text">{{ . | markdownify }}</div>{{ end }}
+    <a class="hero__read" href="#recent-title">开始阅读{{ partial "icon.html" (dict "name" "arrow-right" "size" 18) }}</a>
+    {{- with $site.social }}
+    <div class="hero__social"><span class="hero__social-label">在别处：</span>{{ partial "social.html" (dict "rss" false) }}</div>
+    {{- end }}
+  </div>
 </section>
+
+{{- partial "widgets/slot.html" (dict "page" . "slot" "home-after-intro") }}
 
 {{- $featured := where $posts "Params.featured" true }}
 {{- if and $featured (eq $pager.PageNumber 1) }}
@@ -23,11 +32,11 @@
 {{- end }}
 
 <section class="section" aria-labelledby="recent-title">
-  <h2 class="section__title" id="recent-title">最近</h2>
+  <h2 class="section__title" id="recent-title" tabindex="-1">最近</h2>
   <ul class="post-list">
     {{- range $pager.Pages }}{{ partial "post-item.html" . }}{{ else }}<li class="empty">还没有文章。</li>{{ end }}
   </ul>
   {{- partial "pagination.html" $pager }}
-  <p class="section__more"><a href="{{ "/archive/" | relURL }}">全部文章{{ partial "icon.html" (dict "name" "arrow-right" "size" 16) }}</a></p>
+  <p class="section__more"><a href="{{ "archive/" | relURL }}">全部文章{{ partial "icon.html" (dict "name" "arrow-right" "size" 16) }}</a></p>
 </section>
 {{- end }}

@@ -1,0 +1,4 @@
+{{- /* 不采用公开 URL、标题或 slug；改网址后仍使用原文章文件身份。 */ -}}
+{{- $id := .File.ContentBaseName -}}
+{{- if not (findRE `^[\p{L}\p{N}][\p{L}\p{N}._-]{0,95}$` $id) }}{{ errorf "%s：评论文章 ID 只能包含字母、数字、点、短横线或下划线，最长 96 字符。" .File.Path }}{{ end -}}
+{{- return (printf "/posts/%s/" $id) -}}

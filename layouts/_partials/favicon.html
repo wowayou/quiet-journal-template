@@ -1,0 +1,13 @@
+{{- /* 开放的是配置，不是原始 SVG 代码。位图输出会重新编码。 */ -}}
+{{- with hugo.Data.site.favicon -}}
+  {{- with partial "media/site-image.html" (dict "src" .) -}}
+    {{- $small := .Fill "32x32 png Center" -}}
+    {{- $large := .Fill "192x192 png Center" -}}
+    {{- $touch := .Fill "180x180 png Center" -}}
+<link rel="icon" href="{{ $small.RelPermalink }}" type="image/png" sizes="32x32">
+<link rel="icon" href="{{ $large.RelPermalink }}" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="{{ $touch.RelPermalink }}" sizes="180x180">
+  {{- end -}}
+{{- else -}}
+<link rel="icon" href="{{ "favicon.svg" | relURL }}" type="image/svg+xml">
+{{- end -}}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+  "buildCommand": "",
+  "git": { "deploymentEnabled": false },
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 15,
+      "includeFiles": "{assets/**,LICENSE,vendor/**,node_modules/@waline/{vercel/src/**,admin/dist/**,admin/LICENSE,admin/package.json}}"
+    }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+}

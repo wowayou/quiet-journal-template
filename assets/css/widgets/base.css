@@ -1,0 +1,7 @@
+/* Only included on pages that actually render a widget. */
+.widget { padding: var(--space-5) 0; border-bottom: 1px solid var(--line); }
+.widget__title { margin-bottom: var(--space-3); font-size: var(--text-lg); }
+.widget__hint { color: var(--muted); font-size: var(--text-sm); margin-top: var(--space-2); }
+.text-button { min-height: 44px; padding: var(--space-2) var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--fg); background: var(--bg); font: inherit; cursor: pointer; }
+.text-button:hover { border-color: var(--accent); color: var(--accent); }
+.widget-area .widget:last-child { border-bottom: 0; }

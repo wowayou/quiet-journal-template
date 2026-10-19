@@ -1,8 +1,9 @@
-# Cloudflare Workers 静态资源响应头。修改后用 scripts/smoke-test.mjs 与浏览器各检查一次。
+# Hugo 从本文件生成 Cloudflare Workers 的 _headers。保留下面的评论策略占位符。
+# 修改后用 scripts/smoke-test.mjs 与浏览器各检查一次。
 
-# 访客页面：只允许同源资源；不允许任何第三方脚本（也保护 /admin 的登录令牌）
+# 访客父页只执行同源脚本；可选评论只放行指定框架源（不扩大 /admin 登录令牌的脚本信任范围）
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; __QJ_COMMENT_FRAME_POLICY__object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()

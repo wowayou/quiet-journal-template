@@ -1,0 +1,21 @@
+{{- /* 每次构建检查一次；错误必须阻止发布，不能静默回退为另一种页面。 */ -}}
+{{- $config := hugo.Data.site -}}
+{{- if not (in (slice "new" "same") ($config.links.external_target | default "new")) }}{{ errorf "links.external_target 必须为 new 或 same。" }}{{ end -}}
+{{- with $config.fediverse.creator }}{{ if not (findRE `^@[A-Za-z0-9_.-]+@[A-Za-z0-9.-]+(:[0-9]+)?$` .) }}{{ errorf "fediverse.creator 应为 @用户名@实例域名。" }}{{ end }}{{ end -}}
+{{- $routesValidated := partial "site/validate-routes.html" . -}}
+{{- $commentKeys := slice -}}
+{{- range site.RegularPages -}}
+  {{- if and (isset .Params "comments") (ne (printf "%T" .Params.comments) "bool") }}{{ errorf "%s：comments 必须是布尔值。" .File.Path }}{{ end -}}
+  {{- with partial "comments/for-page.html" . -}}
+    {{- if in $commentKeys .key }}{{ errorf "评论文章 ID 重复：%s；不同文章不能共用评论。" .key }}{{ end -}}
+    {{- $commentKeys = $commentKeys | append .key -}}
+  {{- end -}}
+  {{- if and (eq .Section "posts") .Date.IsZero }}{{ errorf "%s：文章必须填写发布时间 date。" .File.Path }}{{ end -}}
+  {{- if and (not .Date.IsZero) (.Lastmod.Before .Date) }}{{ errorf "%s：lastmod 不得早于 date。" .File.Path }}{{ end -}}
+  {{- if .Lastmod.After now }}{{ errorf "%s：lastmod 不得晚于现在。" .File.Path }}{{ end -}}
+  {{- if ne .Section "posts" -}}
+    {{- $layout := .Layout | default "page" -}}
+    {{- if not (templates.Exists (printf "%s.html" $layout)) }}{{ errorf "%s：页面类型 %q 没有对应布局。请先实现布局，不会自动创建功能。" .File.Path $layout }}{{ end -}}
+  {{- end -}}
+{{- end -}}
+{{- return true -}}

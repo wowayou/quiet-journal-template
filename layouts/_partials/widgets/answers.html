@@ -1,0 +1,5 @@
+<p class="widget__hint">把问题留在心里，翻开一页。只是一个思考提示，不替你作决定。</p>
+<p class="answer" data-answer role="status" aria-live="polite">{{ index hugo.Data.answers 0 }}</p>
+<button class="text-button" data-answer-button type="button" hidden>翻开一页</button>
+<ul data-answer-list hidden>{{ range hugo.Data.answers }}<li>{{ . }}</li>{{ end }}</ul>
+<noscript><p class="widget__hint">这是今天留在这里的一句话；启用 JavaScript 后可以随机翻页。</p></noscript>

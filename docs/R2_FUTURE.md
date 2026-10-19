@@ -11,7 +11,7 @@
 | `![说明](photo.webp)` | 文章文件夹里的图片 |
 | `![说明](/media/photo.webp)` | 全站共享图片（`assets/media/photo.webp`） |
 
-全站只有 `layouts/_partials/media/resolve.html` 知道图片实际在哪儿。
+全站只有 `layouts/_partials/media/resolve.html` 知道**正文图片**实际在哪儿。站点 favicon/社交图标与分享封面的全站上传图另由 `media/site-image.html` 处理，仍只接受本地位图，不随 R2 提供方切换。
 
 ## 切换方式（届时）
 
@@ -30,7 +30,7 @@
 - `photo.webp`（文章 `20261013-a7x2`）→ `<baseURL>/<prefix>/posts/20261013-a7x2/photo.webp`
 - `/media/photo.webp` → `<baseURL>/<prefix>/media/photo.webp`
 
-R2 上的图片不经过 Hugo 处理：没有响应式尺寸，也没有构建时的第二次元数据清除。所以上传到 R2 之前必须已经去除元数据。
+R2 上的图片不经过 Hugo 处理：没有响应式尺寸，也没有构建时的第二次元数据清除。所以上传到 R2 之前必须已经去除元数据。构建不会下载 R2 图片来生成 OG 卡片；若文章仅有远程图片，分享图使用本地全站默认图或自动文字卡片。
 
 `scripts/smoke-test.mjs` 的「媒体 provider」测试覆盖了上述两种地址拼接。
 

@@ -1,9 +1,11 @@
-{{- /* 社交与订阅图标。data/site.yaml → social: [{ icon, url, label }]。参数：rss（是否加 RSS）。 */ -}}
+{{- /* 列表顺序即显示顺序；不折叠进隐藏菜单。me 仅用于明确属于作者的身份链接。 */ -}}
 {{- $site := hugo.Data.site -}}
 {{- if or $site.social .rss }}
 <ul class="social">
   {{- range $site.social }}
-  <li><a href="{{ .url }}" aria-label="{{ .label | default .icon }}" title="{{ .label | default .icon }}"{{ if hasPrefix .url "http" }} rel="noopener me"{{ end }}>{{ partial "icon.html" (dict "name" .icon) }}</a></li>
+  {{- $link := partial "links/resolve.html" (dict "url" .url "target" .target "me" .me "context" "社交链接") }}
+  {{- $label := .label | default .icon | default "社交链接" }}{{ if $link.new }}{{ $label = printf "%s（新标签页打开）" $label }}{{ end }}
+  <li><a {{ partial "links/attributes.html" $link | safeHTMLAttr }} aria-label="{{ $label }}" title="{{ $label }}" data-social="{{ .icon | default "custom" }}">{{ partial "icon.html" (dict "name" .icon "image" .icon_image) }}</a></li>
   {{- end }}
   {{- if .rss }}{{ with site.Home.OutputFormats.Get "rss" }}
   <li><a href="{{ .RelPermalink }}" aria-label="RSS 订阅" title="RSS 订阅">{{ partial "icon.html" (dict "name" "rss") }}</a></li>

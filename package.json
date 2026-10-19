@@ -10,9 +10,16 @@
   },
   "scripts": {
     "dev": "hugo server",
-    "build": "node scripts/check-media.mjs && hugo --gc --minify",
+    "build": "node scripts/check-media.mjs && hugo --gc --minify --cleanDestinationDir && node scripts/check-site.mjs",
     "check:media": "node scripts/check-media.mjs --public public",
-    "test": "node --test \"scripts/test/*.test.mjs\" && node scripts/smoke-test.mjs",
+    "check:site": "node scripts/check-site.mjs",
+    "content:export": "node scripts/content-transfer.mjs export --source .",
+    "content:inspect": "node scripts/content-transfer.mjs inspect",
+    "content:import": "node scripts/content-transfer.mjs import",
+    "test": "node --test scripts/test/*.test.mjs && node scripts/smoke-test.mjs",
+    "test:browser": "node scripts/browser-test.mjs",
+    "test:cms": "node scripts/cms-test.mjs",
+    "test:comments": "node scripts/comments-test.mjs",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {

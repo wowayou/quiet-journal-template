@@ -1,0 +1,4 @@
+# 只填写独立评论面板的 HTTPS 源（协议、域名、可选端口），不要填写 API 或密钥。
+# 面板和 Waline 数据服务单独构建/部署，见 docs/COMMENTS.md。
+enabled: false
+origin: ""

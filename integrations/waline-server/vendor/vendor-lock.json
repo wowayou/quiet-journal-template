@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "profile": "postgres-no-external-v1",
+  "adminSha256": "1ec61f7b6bad65cb52ad803914754b54f967c382680d0c0083e39fd6811718c6",
+  "files": {
+    "waline-vercel-1.43.4-qj.1.tgz": {
+      "bytes": 83891,
+      "sha256": "caeec7e18be3febea9f0e35a3e8436768dbdc08b93dc6a134187c943f16c56ce"
+    },
+    "waline-admin-0.36.0-qj.1.tgz": {
+      "bytes": 191866,
+      "sha256": "5f2d41a10e2e0b5ba1e30a977dc1c22cb36db9e8c50a67f8b0b3fd2979bcf543"
+    },
+    "waline-server-source-1.43.4.tar.gz": {
+      "bytes": 297571,
+      "sha256": "8741468061d4b51a380207dac09f32973d5be8245ff8005df749dff4598cf80d"
+    },
+    "waline-admin-source-0.36.0.tar.gz": {
+      "bytes": 3622731,
+      "sha256": "658ac62b1b432c2ce887d46385d30ce5781a1999cdcdd440526ce4f187cd2b62"
+    }
+  }
+}

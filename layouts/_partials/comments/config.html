@@ -1,0 +1,31 @@
+{{- $enabled := false -}}
+{{- $origin := "" -}}
+{{- $raw := hugo.Data.comments -}}
+{{- if isset hugo.Data "comments" -}}
+  {{- if not (reflect.IsMap $raw) -}}
+    {{- errorf "data/comments.yaml 必须是包含 enabled 和 origin 的对象。" -}}
+  {{- else -}}
+    {{- range $key, $_ := $raw }}{{ if not (in (slice "enabled" "origin") $key) }}{{ errorf "未知评论配置 %q；博客只接收隔离面板的源，不接收脚本、API 或凭据。" $key }}{{ end }}{{ end -}}
+    {{- if isset $raw "enabled" -}}
+      {{- if ne (printf "%T" $raw.enabled) "bool" }}{{ errorf "comments.enabled 必须是布尔值。" }}{{ else }}{{ $enabled = $raw.enabled }}{{ end -}}
+    {{- end -}}
+    {{- if isset $raw "origin" -}}
+      {{- if ne (printf "%T" $raw.origin) "string" }}{{ errorf "comments.origin 必须是字符串。" }}{{ else }}{{ $origin = $raw.origin }}{{ end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if $enabled -}}
+  {{- if not (findRE `^https://[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?(?::[1-9][0-9]{0,4})?/?$` $origin) -}}
+    {{- errorf "comments.origin 必须是独立的 HTTPS 源，不能带路径、查询、片段、凭据或控制字符。" -}}
+  {{- else -}}
+    {{- $url := urls.Parse $origin -}}
+    {{- if and $url.Port (gt (int $url.Port) 65535) }}{{ errorf "comments.origin 端口无效。" }}{{ end -}}
+    {{- $host := strings.TrimSuffix ":443" (lower $url.Host) -}}
+    {{- $origin = printf "https://%s" $host -}}
+    {{- $base := urls.Parse site.BaseURL -}}
+    {{- $baseHost := lower $base.Host -}}
+    {{- if eq $base.Scheme "https" }}{{ $baseHost = strings.TrimSuffix ":443" $baseHost }}{{ end -}}
+    {{- if eq $origin (printf "%s://%s" $base.Scheme $baseHost) }}{{ errorf "评论面板必须与博客/写作后台跨源，不能把 Waline 程序放到本站。" }}{{ end -}}
+  {{- end -}}
+{{- end -}}
+{{- return (dict "enabled" $enabled "origin" $origin) -}}

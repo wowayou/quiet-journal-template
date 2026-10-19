@@ -1,13 +1,11 @@
 {{- define "main" }}
-<header class="page-header">
-  <h1 class="page-header__title">{{ .Title }}</h1>
-  {{- with .Content }}<div class="page-header__desc prose">{{ . }}</div>{{ end }}
-</header>
+{{- partial "page-header.html" (dict "page" .) }}
 {{- with hugo.Data.links }}
 <ul class="plain-list">
   {{- range . }}
   <li>
-    <a class="plain-list__name" href="{{ .url }}" rel="noopener">{{ .name }}</a>
+    {{- $link := partial "links/resolve.html" (dict "url" .url "target" .target "context" "友链") }}
+    <a class="plain-list__name" {{ partial "links/attributes.html" $link | safeHTMLAttr }}>{{ .name }}{{ partial "links/notice.html" $link }}</a>
     {{- with .note }}<p class="plain-list__note">{{ . }}</p>{{ end }}
   </li>
   {{- end }}
