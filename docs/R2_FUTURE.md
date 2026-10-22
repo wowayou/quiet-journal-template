@@ -11,16 +11,16 @@
 | `![说明](photo.webp)` | 文章文件夹里的图片 |
 | `![说明](/media/photo.webp)` | 全站共享图片（`assets/media/photo.webp`） |
 
-全站只有 `layouts/_partials/media/resolve.html` 知道**正文图片**实际在哪儿。站点 favicon/社交图标与分享封面的全站上传图另由 `media/site-image.html` 处理，仍只接受本地位图，不随 R2 提供方切换。
+全站只有 `layouts/_partials/media/resolve.html` 知道**正文图片**实际在哪儿。favicon 的全站上传图由 `media/site-image.html` 处理，仍只接受本地位图；自定义社交/导航图标改由 `media/icon-source.html` 处理，支持本地位图、被动 SVG 或显式 HTTPS 图片外链，不随 R2 提供方切换。分享封面也不随正文媒体提供方切换。
 
 ## 切换方式（届时）
 
-`config/_default/hugo.toml`：
+`config/_default/params.toml`：
 
 ```toml
-[params.media]
+[media]
   provider = "r2"
-  [params.media.r2]
+  [media.r2]
     baseURL = "https://media.example.com"
     prefix = "journal"
 ```

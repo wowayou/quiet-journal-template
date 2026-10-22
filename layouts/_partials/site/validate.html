@@ -1,10 +1,23 @@
 {{- /* 每次构建检查一次；错误必须阻止发布，不能静默回退为另一种页面。 */ -}}
+{{- /* 栏目/首页会聚合子页面日期；只用显式日期判断聚合页，避免未发布栏目误封首页。 */ -}}
+{{- range site.Pages -}}
+  {{- if .Draft }}{{ errorf "构建含草稿 %s；不得用 buildDrafts 公开私人内容。" .Path }}{{ end -}}
+  {{- $dated := or .IsPage (isset .Params "date") -}}
+  {{- $scheduled := or .IsPage (isset .Params "publishdate") -}}
+  {{- if or (and $dated (.Date.After now)) (and $scheduled (.PublishDate.After now)) }}{{ errorf "构建含未来页面 %s；不得用 buildFuture 发布。" .Path }}{{ end -}}
+  {{- with .ExpiryDate }}{{ if .Before now }}{{ errorf "构建含已过期页面，不得用 buildExpired 发布。" }}{{ end }}{{ end -}}
+{{- end -}}
+
+{{- $instanceConfig := transform.Unmarshal (dict "format" "toml") (readFile "config/_default/hugo.toml") -}}
+{{- if or $instanceConfig.buildDrafts $instanceConfig.buildFuture $instanceConfig.buildExpired }}{{ errorf "实例不得打开草稿、未来或过期内容发布。" }}{{ end -}}
 {{- $config := hugo.Data.site -}}
 {{- if not (in (slice "new" "same") ($config.links.external_target | default "new")) }}{{ errorf "links.external_target 必须为 new 或 same。" }}{{ end -}}
 {{- with $config.fediverse.creator }}{{ if not (findRE `^@[A-Za-z0-9_.-]+@[A-Za-z0-9.-]+(:[0-9]+)?$` .) }}{{ errorf "fediverse.creator 应为 @用户名@实例域名。" }}{{ end }}{{ end -}}
 {{- $routesValidated := partial "site/validate-routes.html" . -}}
 {{- $commentKeys := slice -}}
 {{- range site.RegularPages -}}
+  {{- if .Params.build.publishResources }}{{ errorf "%s：不能启用 bundle 原始资源发布。" .File.Path }}{{ end -}}
+  {{- if isset .Params "modified" }}{{ errorf "%s：请使用显式 lastmod，不能通过 Hugo modified 别名绕过更新时间规则。" .File.Path }}{{ end -}}
   {{- if and (isset .Params "comments") (ne (printf "%T" .Params.comments) "bool") }}{{ errorf "%s：comments 必须是布尔值。" .File.Path }}{{ end -}}
   {{- with partial "comments/for-page.html" . -}}
     {{- if in $commentKeys .key }}{{ errorf "评论文章 ID 重复：%s；不同文章不能共用评论。" .key }}{{ end -}}
@@ -16,6 +29,7 @@
   {{- if ne .Section "posts" -}}
     {{- $layout := .Layout | default "page" -}}
     {{- if not (templates.Exists (printf "%s.html" $layout)) }}{{ errorf "%s：页面类型 %q 没有对应布局。请先实现布局，不会自动创建功能。" .File.Path $layout }}{{ end -}}
+    {{- if in (slice "admin" "css" "js" "fonts" "media" "og" "search" "page") .File.ContentBaseName }}{{ errorf "%s：该页面 ID 保留给系统资源或分页，请改用其他 ID。" .File.Path }}{{ end -}}
   {{- end -}}
 {{- end -}}
 {{- return true -}}

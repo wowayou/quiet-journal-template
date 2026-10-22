@@ -232,7 +232,7 @@ test("RSS 图片/相对链接转绝对地址，正文封面和附件保持一致
 }));
 
 test("分页 canonical 自指、子路径部署与移除已发布内容不留旧产物", () => using((f) => {
-  put(f.root, "config/_default/hugo.toml", read(f.root, "config/_default/hugo.toml").replace("pagerSize = 12", "pagerSize = 1"));
+  put(f.root, "config/_default/pagination.toml", read(f.root, "config/_default/pagination.toml").replace("pagerSize = 12", "pagerSize = 1"));
   success(build(f.root));
   const page2 = pageTags(f.root, "page/2/index.html");
   assert.equal(page2.find((tag) => tag.name === "link" && tag.attrs.rel === "canonical").attrs.href, "https://example.test/page/2/");

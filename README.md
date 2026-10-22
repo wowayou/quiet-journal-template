@@ -2,27 +2,27 @@
 
 一个安静、易于修改的个人生活博客模板，基于 Hugo。博客本体没有数据库，不需要服务器或统计脚本，默认只加载同源资源。可选免登录评论由隔离的面板和独立服务提供，读者主动加载后才连接。
 
-> 当前版本：**2026-10-19 体验与扩展更新**，见 [CHANGELOG.md](CHANGELOG.md)；已有站点更新前请读 [UPDATING.md](docs/UPDATING.md)。样式已由实例作者验收；可选评论默认关闭、独立云端服务尚未开通，新交互的 Safari/iPhone 真机验收仍需另做。
+> 本地交付：**2026-10-22 配置分层、内容工具 V2、图标与可选邮件表单已验收并提交**；尚未推送或部署，线上基线仍为 2026-10-19 的后续成功构建。见 [CHANGELOG.md](CHANGELOG.md)；已有站点更新前请读 [UPDATING.md](docs/UPDATING.md)。评论、邮件真实服务及 Safari/iPhone 新交互仍独立验收。
 
 ## 用这个模板建站
 
 1. 点 **Use this template → Create a new repository**，可见性选 **Private**（你的文章和草稿都在这个仓库里）。
-2. 改 4 处配置：`wrangler.jsonc` 的 `name`、`config/_default/hugo.toml` 的 `baseURL`、`static/admin/config.yml` 的 `backend.repo`、`data/site.yaml` 的网站名和社交链接。
+2. 改 4 处配置：`wrangler.jsonc` 的 `name`、`config/_default/hugo.toml` 的 `baseURL`、`data/editor.yaml` 的 `repo`、`data/site.yaml` 的网站名和社交链接。
 3. 示例文章在 `content/posts/`：删掉，或把 `draft` 改成 `true` 留着参考。
 4. 按 [docs/DEPLOY.md](docs/DEPLOY.md) 接入 Cloudflare，按 [docs/EDITING.md](docs/EDITING.md) 创建写作用的访问令牌。
 
 ## 本地运行
 
-需要 [Hugo](https://gohugo.io/installation/) **v0.167.0 或更高**（standard 版即可，不需要 extended），以及 Node.js 18 或更高（仅用于检查脚本）。
+需要 [Hugo](https://gohugo.io/installation/) **v0.167.0 或更高**（standard 版即可，不需要 extended），以及 Node.js 18 或更高（用于配置/媒体检查与本地内容工具）。
 
 ```bash
 hugo server            # http://localhost:1313 ，改文件自动刷新
-npm run build          # 源媒体检查 + 干净生产构建 + 链接/日期/产物检查
+npm run build          # 有效配置 + 源媒体 + 干净生产构建 + 产物检查
 npm test               # 独立测试夹具，不要求保留模板示例文章
 # 私有实例用 QJ_INSTANCE=1 npm test（仓库名改检查为非占位，其余回归相同）
 ```
 
-不用 npm 也可运行：`node scripts/check-media.mjs && hugo --gc --minify --cleanDestinationDir && node scripts/check-site.mjs`。`public/` 是可清理的生成目录，不要在里面手放文件。推荐 Node.js 24；可选浏览器回归需要 Node 22+ 和自己安装的 Chromium，见 [UPDATING.md](docs/UPDATING.md)。
+不用 npm 安装的依赖运行 Hugo 预览仍可用；完整构建/内容工具先 `npm ci` 安装锁定的本地工具依赖。推荐 Node.js 24；可选浏览器回归需要 Node 22+ 和自己安装的 Chromium，见 [UPDATING.md](docs/UPDATING.md)。
 
 ## 写一篇文章
 
@@ -59,9 +59,11 @@ draft: true                # true 时不会出现在网站上
 - 首页/页脚：欢迎区分栏、手机堆叠、原生同页“开始阅读”，页脚按个人表达/联系订阅/版权分组。原文案、设置及文章地址不变；作者已于 2026-10-19 确认样式验收，见 [DESIGN.md](docs/DESIGN.md)。
 - CMS 可新建普通页面；页面功能、导航内部引用与外链分开，坏的本站链接阻止发布，不自动生成空页面。
 - 后台可选新上传图片质量（站点设置 / 75 / 85 / 92）；本机偏好、下次载入生效，不重压旧图，见 [EDITING.md](docs/EDITING.md#图片压缩与质量选择)。
-- 本地内容导出、完整性校验/冲突比较、隔离导入；保留原文件，不覆盖或自动发布，见 [TRANSFER.md](docs/TRANSFER.md)。
+- 本地内容工具 V2：ZIP/目录、自动检查、摘要、可分页文字比较、完整报告、确认哈希绑定及刷新/取消；不覆盖或自动发布，见 [TRANSFER.md](docs/TRANSFER.md)。
+- 核心/实例分层：CMS 核心 schema 与实例连接分开，Hugo 原生配置分片、固定核心清单和只读升级预览，见 [UPDATING.md](docs/UPDATING.md)。
+- 可选 Buttondown 文末邮件表单与页脚链接，默认关闭，不自动发信或添加订阅者；见 [CUSTOMIZE.md](docs/CUSTOMIZE.md)。
 - 可选免登录留言/回复：默认关闭，Waline 在独立面板中运行，不与博客或写作令牌共享源；不向读者收邮箱、不发邮件。面板与 Vercel Hobby + Neon Free 服务部署包已在本地实现/验证，已处理依赖告警并提供 GPL 对应源码；云端未开通，见 [COMMENTS.md](docs/COMMENTS.md)。
-- 首页图标导航；favicon 与社交/导航图标可上传位图，列表可排序、自动换行。
+- 首页图标导航；favicon 可上传位图，自定义社交/导航图标还支持静态 SVG 和 HTTPS 图片地址，列表可排序、自动换行。SVG 不内联执行，外链会由访客直接请求该源，推荐下载后上传。
 - 外链默认新标签，支持全局/逐项覆盖；正文提供类似 Shopify 的“链接打开方式”组件，仍保存 Markdown。
 - 搜索默认开、答案之书默认关；有可排序的插槽和代码白名单，关闭后不加载它们的资源。
 - Mastodon 双向身份验证与分享作者归属（不是自动联邦发帖）；RSS 在 `<baseURL>index.xml`。
@@ -71,7 +73,8 @@ draft: true                # true 时不会出现在网站上
 ## 目录
 
 ```
-config/_default/hugo.toml   构建配置（技术项）
+config/_default/hugo.toml   实例 URL/语言/发布开关（不从模板覆盖）
+config/_default/params.toml 实例媒体/时区，其余配置分片由核心维护
 data/site.yaml              网站名、导航、页脚等日常设置
 data/links.yaml             友链
 data/credits.yaml           致谢（只列实际使用的）
@@ -79,6 +82,8 @@ data/widgets.yaml           可选挂件（启停、顺序、插槽）
 data/answers.yaml           答案之书的原创示例句子
 data/widget_types.yaml      代码维护的挂件类型白名单
 data/comments.yaml          可选评论开关与隔离面板源（不是 API 或凭据）
+data/newsletter.yaml        可选邮件表单账号与说明（默认关闭，不发信）
+core-manifest.json          固定核心文件清单，用于只读升级预览
 content/                    文章与页面
 assets/css/                 tokens → base → components → lightbox → 按需挂件 → overrides
 assets/fonts/               自托管字体（Google Sans Code，拉丁字符）
@@ -87,7 +92,9 @@ assets/icons/               SVG 图标
 assets/media/               全站共享图片，用 /media/文件名 引用
 layouts/                    模板（按组件拆分）
 scripts/                    媒体/站点检查、内容传输、备份与本地回归测试
-static/admin/               写作界面（Sveltia CMS）入口与配置
+data/editor.yaml            实例 CMS 仓库/分支/工作流
+assets/admin/schema.yml     核心编辑器字段，Hugo 生成 /admin/config.yml
+static/admin/               写作界面入口与配套脚本
 assets/server/headers.txt    Hugo 生成 _headers 的单一安全策略来源
 integrations/waline/        独立评论面板项目，不随 Hugo 构建/发布
 integrations/waline-server/ 独立 Waline 服务候选与手动备份；默认锁定，开通见其 README
@@ -125,7 +132,8 @@ docs/                       写作、定制、扩展、更新、部署、取舍�
 - [x] Phase 3：公开模板仓库 + 私有实例仓库 + Cloudflare Workers Builds 自动部署（非生产分支不构建）
 - [x] Phase 4：真机验收与使用文档（实例作者已确认；新建站点仍需自行验收）
 - [x] 2026-10-19 体验/扩展更新：实现、本地回归与样式验收完成，随本次更新交付
-- [ ] 可选评论云端开通、新交互 Safari/iPhone 真机验收：独立进行，不随代码交付自动完成
+- [x] 2026-10-22 本地更新：配置分层、内容工具 V2、ZIP 与可选邮件表单实现/验收/本地提交完成，未推送部署
+- [ ] 可选评论与邮件真实服务、新交互 Safari/iPhone 真机验收：独立进行，不随代码交付自动完成
 
 ## 首发于
 [Linuxdo](https://linux.do)

@@ -1,0 +1,3 @@
+# 核心稳定文章路径；改标题不改链接。
+[page]
+  posts = "/posts/:contentbasename/"

@@ -1,6 +1,6 @@
 # 扩展契约
 
-适用本轮体验/扩展更新。目标是让用户以小成本扩展，而不是把模板变成页面搭建平台。**配置输入与可执行代码分开**；编辑器可替换，发布始终走媒体检查 → Hugo → 产物检查。
+适用本轮体验/扩展更新。目标是让用户以小成本扩展，而不是把模板变成页面搭建平台。**配置输入与可执行代码分开**；编辑器可替换，发布始终走有效配置检查 → 媒体检查 → Hugo → 产物检查。
 
 ## 所有权与边界
 
@@ -13,10 +13,10 @@
 | 个性化行为 | 可选 `assets/js/custom.js` | 使用者；同源、指纹化、模块脚本，未提供则零输出 |
 | 局部扩展 | `layouts/_partials/extensions/head.html`、`body-end.html` | 使用者的代码入口；默认空，不在 CMS 接受 HTML |
 | 挂件类型 | `data/widget_types.yaml` + 可选 `data/widget_extensions.yaml` | 核心白名单 + 使用者白名单；不能用扩展覆盖内建名称 |
-| 编辑器适配 | `static/admin/config.yml`、`editor-components.js` | 开发者；新增字段必须有渲染/验证实现，不能只画表单 |
+| 编辑器适配 | `assets/admin/schema.yml` + `data/editor.yaml` / `editor_extensions.yaml`、`editor-components.js` | 核心字段与实例连接分开；新增字段必须有渲染/验证实现，不能只画表单 |
 | 可选评论 | `data/comments.yaml`、`integrations/waline/`、`integrations/waline-server/` | 博客只存开关/面板源；客户端、API/管理端、数据库与主站分开，不作为通用挂件或博客构建依赖 |
 
-“接口稳定”指这些职责和输入契约应向后兼容，不代表所有 CSS 选择器或内部实现永不变化。破坏性变更必须在 `CHANGELOG.md` 写迁移步骤。更新时区分公共代码和用户文件，见 [UPDATING.md](UPDATING.md)。
+“接口稳定”指这些职责和输入契约应向后兼容，不代表所有 CSS 选择器或内部实现永不变化。声明在 `data/widget_extensions.yaml` 的个人 partial/CSS/JS 与全局钩子不进入核心文件清单；未声明的同路径定制由升级预览报告冲突，不能整目录删除。破坏性变更必须在 `CHANGELOG.md` 写迁移步骤。更新时区分公共代码和用户文件，见 [UPDATING.md](UPDATING.md)。
 
 ## 新页面复用组件
 
@@ -34,7 +34,7 @@
 
 - 文章 `kind: note | story | photo` 不等于 `layout`。前者是文章语义，后者负责页面功能。
 - 链接用 `links/resolve.html` → `links/attributes.html` / `links/notice.html`；不要各处手写不一致的 `target`。返回 `url / external / new / rel`。
-- 内容图片用 `media.html` / `media/resolve.html`，图标用 `icon.html`，站点图片用 `media/site-image.html`，不要直接发布 `assets/media/` 原文件。
+- 内容图片用 `media.html` / `media/resolve.html`，图标用 `icon.html` / `media/icon-source.html`，favicon 用 `media/site-image.html`。位图重编码后发布；仅通过被动白名单检查的 SVG 图标可作为独立、带指纹的图片发布，不内联；不要批量发布 `assets/media/` 原文件。
 - 页面 ID 不要占用 `admin css js fonts media og search page` 等资源路径，也不要用 `url`/`slug` 绕过保留路径。正文与导航只能引用真正发布的目标；不要移除 `/archive/` 后留下共享入口。
 
 ## 注册挂件（无需修改基础布局）

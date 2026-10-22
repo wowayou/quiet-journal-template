@@ -4,11 +4,11 @@
 
 本文件只负责博客部署。可选评论的静态面板、Waline API/管理端与数据库独立部署，见 [COMMENTS.md](COMMENTS.md)；不要把博客的静态资源计费规则当成评论服务/数据库也免费。博客构建不安装或部署 `integrations/waline/` 和 `integrations/waline-server/`。后者为 Vercel Hobby + Neon Free 的本地服务候选，仍有独立的账号授权、依赖/许可更新审查与真实上线验收，见其 [README](../integrations/waline-server/README.md)。
 
-构建由 **Workers Builds** 完成：推送到 `main` 后 Cloudflare 拉取仓库、运行构建并发布。不使用 GitHub Actions。`npm run build` 依次检查源媒体、清理并生成 Hugo 产物、检查本站链接/锚点/日期和产物媒体；任一步失败不进入部署，线上保留上一次成功版本。站点日常升级见 [UPDATING.md](UPDATING.md)。
+构建由 **Workers Builds** 完成：推送到 `main` 后 Cloudflare 拉取仓库、运行构建并发布。不使用 GitHub Actions。`npm run build` 固定 `production` 环境，依次检查有效配置、源媒体、清理并生成 Hugo 产物、检查本站链接/锚点/日期和产物媒体；任一步失败不进入部署，线上保留上一次成功版本。站点日常升级见 [UPDATING.md](UPDATING.md)。
 
 ## 一次性设置
 
-1. 修改 `wrangler.jsonc` 的 `name`，以及 `config/_default/hugo.toml` 的 `baseURL`、`static/admin/config.yml` 的 `backend.repo`。
+1. 修改 `wrangler.jsonc` 的 `name`，以及 `config/_default/hugo.toml` 的 `baseURL`、`data/editor.yaml` 的 `repo`（后台配置由 Hugo 生成）。
 2. Cloudflare 控制台 → Workers & Pages → 创建 → 导入 Git 仓库，选择你的私有仓库。
    - 如果 Worker 已通过本地 Wrangler 创建，不要重复新建：打开该 Worker → **Settings → Builds → Connect**，连接私有仓库。
    - Worker 名称必须与 `wrangler.jsonc` 的 `name` 一致。

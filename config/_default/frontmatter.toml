@@ -1,0 +1,3 @@
+# 核心日期规则；不从 Git/部署时间生成内容更新时间。
+date = ["date"]
+lastmod = ["lastmod", "date"]

@@ -1,9 +1,8 @@
-{{- /* 内建图标由模板维护；image 是 CMS 上传的本地位图（优先，不内联 SVG）。 */ -}}
+{{- /* 内建图标由模板维护；自定义图标优先，始终作为图片而非内联代码。 */ -}}
 {{- $size := .size | default 20 -}}
 {{- if .image -}}
-  {{- with partial "media/site-image.html" (dict "src" .image) -}}
-    {{- $image := .Fit "64x64 webp q85" -}}
-    <img class="icon icon--uploaded" src="{{ $image.RelPermalink }}" width="{{ $size }}" height="{{ $size }}" alt="" aria-hidden="true" decoding="async">
+  {{- with partial "media/icon-source.html" .image -}}
+    <img class="icon icon--uploaded" src="{{ .url }}" width="{{ $size }}" height="{{ $size }}" alt="" aria-hidden="true" decoding="async" referrerpolicy="no-referrer">
   {{- end -}}
 {{- else -}}
   {{- $name := .name | default "link" -}}

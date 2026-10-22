@@ -1,0 +1,6 @@
+{{- $out := false -}}
+{{- if and .IsPage (eq .Section "posts") (not .Draft) (not .Params.noindex) (not (.Date.After now)) -}}
+  {{- $config := partialCached "newsletter/config.html" . "newsletter-config" -}}
+  {{- if $config.enabled }}{{ $out = $config }}{{ end -}}
+{{- end -}}
+{{- return $out -}}

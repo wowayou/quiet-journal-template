@@ -8,6 +8,24 @@
 {{- $text := $source.Content -}}
 {{- if ne (len (findRE "__QJ_COMMENT_FRAME_POLICY__" $text)) 1 }}{{ errorf "headers.txt 必须恰好保留一个评论 frame-src 占位符。" }}{{ end -}}
 {{- $text = replace $text "__QJ_COMMENT_FRAME_POLICY__" $framePolicy -}}
+{{- $newsletter := partialCached "newsletter/config.html" . "newsletter-config" -}}
+{{- if $newsletter.enabled -}}
+  {{- $visitorPolicies := findRE `(?m)^  Content-Security-Policy: [^\n]+` $text -}}
+  {{- if not $visitorPolicies }}{{ errorf "邮件订阅需要现有访客 Content-Security-Policy。" }}{{ end -}}
+  {{- $visitorPolicy := index $visitorPolicies 0 | strings.TrimSpace -}}
+  {{- if ne (len (findRE `form-action 'self'(?:;|$)` $visitorPolicy)) 1 }}{{ errorf "邮件订阅需要唯一的 form-action 'self'，不能静默放宽自定义策略。" }}{{ end -}}
+  {{- range site.RegularPages -}}
+    {{- $page := . -}}
+    {{- with partial "newsletter/for-page.html" . -}}
+      {{- $policy := replace $visitorPolicy "form-action 'self'" (printf "form-action 'self' %s" .action) -}}
+      {{- $path := (urls.Parse $page.RelPermalink).Path -}}
+      {{- $text = printf "%s\n%s\n  ! Content-Security-Policy\n  %s\n" $text $path $policy -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- /* 固定部署工具和平台都限制 100 个路径规则、每行 2,000 字符；超限失败，不截断 CSP。 */ -}}
+{{- if gt (len (findRE `(?m)^(?:/|https://)[^\n]+` $text)) 100 }}{{ errorf "响应头超过 100 条路径规则限额；请合并自定义规则，或关闭邮件表单，不会自动放宽到全部路径。" }}{{ end -}}
+{{- range split $text "\n" }}{{ if gt (len .) 2000 }}{{ errorf "响应头单行超过 2,000 字节保守限额；请缩减策略，不能静默截断。" }}{{ end }}{{ end -}}
 {{- $headers := resources.FromString "_headers" $text -}}
 {{- $published := $headers.RelPermalink -}}
 {{- return true -}}

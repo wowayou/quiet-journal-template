@@ -1,0 +1,9 @@
+# 实例媒体参数与显示时区；核心升级不覆盖。
+timeZone = "Asia/Shanghai"
+[media]
+  provider = "local"
+  widths = [640, 1024, 1600]
+  quality = 82
+  [media.r2]
+    baseURL = ""
+    prefix = ""

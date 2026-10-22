@@ -151,9 +151,9 @@ check("/admin/ 写作入口存在且固定版本、带 SRI", (() => { const a = 
 check("robots.txt 禁止抓取 /admin/", /Disallow: \/admin\//.test(readFileSync(join(pub, "robots.txt"), "utf8")));
 const cmsConfig = readFileSync(join(pub, "admin/config.yml"), "utf8");
 if (process.env.QJ_INSTANCE === "1") {
-  check("实例 CMS 使用非占位的仓库配置", /^\s+repo:\s+(?!OWNER\/REPO\b)[\w.-]+\/[\w.-]+\s*(?:#.*)?$/m.test(cmsConfig));
+  check("实例 CMS 使用非占位的仓库配置", JSON.parse(cmsConfig).backend.repo !== "OWNER/REPO");
 } else {
-  check("CMS 配置未包含真实仓库名（模板占位）", cmsConfig.includes("repo: OWNER/REPO"));
+  check("CMS 配置未包含真实仓库名（模板占位）", JSON.parse(cmsConfig).backend.repo === "OWNER/REPO");
 }
 check("_headers 已输出", rel.includes("_headers"));
 check("RSS 含 5 篇已发布文章", (rss.match(/<item>/g) || []).length === 5, `实际 ${(rss.match(/<item>/g) || []).length}`);

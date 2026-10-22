@@ -24,6 +24,19 @@ software:
     source: https://github.com/brianc/node-postgres
     note: pg 8.23.1；仅在独立服务安装和使用，数据库凭据不进入博客。
 
+  - name: yaml
+    role: 本地内容工具、配置与扩展声明的 YAML 解析，不在访客脚本运行
+    license: ISC
+    url: https://github.com/eemeli/yaml
+    source: https://github.com/eemeli/yaml
+    note: 固定 2.9.1；内容原字节保留，不执行文首代码。
+  - name: yauzl / yazl
+    role: 本地内容快照 ZIP 解包与打包，不在访客脚本运行
+    license: MIT
+    url: https://github.com/thejoshwolfe/yauzl
+    source: https://github.com/thejoshwolfe/yazl
+    note: 固定 yauzl 3.4.0 / yazl 3.3.1，受路径/体积/CRC/媒体检查限制。
+
 fonts:
   - name: Google Sans Code
     role: 拉丁字母与数字的字体（随站点自托管，约 63 KB）；中文使用访客设备的系统字体

@@ -59,14 +59,16 @@ test("编辑器链接组件：文本/地址往返，拒绝把内容变成 HTML �
   assert.doesNotThrow(() => component.toBlock({}));
   assert.doesNotThrow(() => component.toPreview({}));
 });
-test("SVG 上传区、SMIL、外部资源和构建字体发布限制", () => {
+test("SVG 图标仅接受被动图形；正文 SVG、SMIL、外部资源和构建字体仍拒绝", () => {
   for (const content of ['<svg><foreignObject/></svg>', '<svg><animate attributeName="href" to="javascript:x"/></svg>', '<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg/>', '<svg><use href="#x"/></svg>']) {
     assert.ok(inspect(Buffer.from(content), "logo.svg").problems.length);
   }
   const f = fixture();
   try {
     put(f.root, "assets/media/logo.svg", '<svg xmlns="http://www.w3.org/2000/svg"/>');
-    assert.ok(checkDir(join(f.root, "assets"), "assets", f.root).some((issue) => issue.level === "FAIL" && issue.file.endsWith("logo.svg")));
+    assert.ok(!checkDir(join(f.root, "assets"), "assets", f.root).some((issue) => issue.level === "FAIL" && issue.file.endsWith("logo.svg")));
+    put(f.root, "content/posts/a/logo.svg", '<svg xmlns="http://www.w3.org/2000/svg"/>');
+    assert.ok(checkDir(join(f.root, "content"), "content", f.root).some((issue) => issue.level === "FAIL" && issue.file.endsWith("logo.svg")));
     put(f.root, "public/og/font.otf", "font");
     assert.ok(checkDir(join(f.root, "public"), "public", f.root).some((issue) => issue.level === "FAIL"));
   } finally { f.cleanup(); }

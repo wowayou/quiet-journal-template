@@ -1,0 +1,19 @@
+{{- /* 自定义图标：本地资源或显式 HTTPS 外链；不在构建时抓取远程地址。 */ -}}
+{{- $src := . -}}
+{{- $out := dict -}}
+{{- if hasPrefix $src "https://" -}}
+  {{- $link := partial "links/resolve.html" (dict "url" $src "context" "自定义图标") -}}
+  {{- $url := urls.Parse $link.url -}}
+  {{- if or $url.Fragment (not (findRE `(?i)\.(svg|png|jpe?g|webp)$` $url.Path)) }}{{ errorf "自定义图标须为 HTTPS 的 SVG、PNG、JPEG 或 WebP 图片地址：%q" $src }}{{ end -}}
+  {{- $out = dict "url" $link.url -}}
+{{- else -}}
+  {{- if or (not (findRE `^/media/[a-zA-Z0-9_./-]+\.(svg|png|jpe?g|webp)$` $src)) (in (split $src "/") "..") }}{{ errorf "自定义图标必须是 /media/ 下的 SVG/PNG/JPEG/WebP（不能包含 ..），或完整的 HTTPS 图片地址：%q" $src }}{{ end -}}
+  {{- with resources.Get (strings.TrimPrefix "/" $src) -}}
+    {{- if eq .MediaType.Type "image/svg+xml" -}}
+      {{- $out = dict "url" (. | fingerprint "sha256").RelPermalink -}}
+    {{- else if in (slice "image/png" "image/jpeg" "image/webp") .MediaType.Type -}}
+      {{- $out = dict "url" (.Fit "64x64 webp q85").RelPermalink -}}
+    {{- else }}{{ errorf "不支持的自定义图标格式：%s" .Name }}{{ end -}}
+  {{- else }}{{ errorf "找不到自定义图标 %q。请先上传，或清空该字段。" $src }}{{ end -}}
+{{- end -}}
+{{- return $out -}}

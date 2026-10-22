@@ -1,0 +1,9 @@
+.newsletter { margin-block: 2.5rem; padding-block: 1.5rem; border-block: 1px solid var(--line); }
+.newsletter h2 { font: inherit; font-weight: 700; margin: 0 0 .5rem; }
+.newsletter > p { margin: .5rem 0 1rem; }
+.newsletter__form label { display: block; margin-bottom: .4rem; }
+.newsletter__fields { display: flex; gap: .6rem; max-width: 32rem; }
+.newsletter__fields input[type=email] { min-width: 0; flex: 1; padding: .65rem .8rem; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; min-height: 44px; }
+.newsletter__fields button { padding: .65rem 1rem; font: inherit; color: var(--bg); background: var(--accent); border: 1px solid var(--accent); border-radius: var(--radius-sm); min-height: 44px; cursor: pointer; }
+.newsletter__notice { font-size: .8rem; }
+@media (max-width: 420px) { .newsletter__fields { flex-direction: column; } }

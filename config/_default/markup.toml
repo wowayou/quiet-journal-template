@@ -1,0 +1,10 @@
+# 核心 Markdown / 展示规则。个人样式在 overrides.css。
+[goldmark.parser]
+  wrapStandAloneImageWithinParagraph = false
+[goldmark.parser.attribute]
+  block = true
+[goldmark.renderer]
+  unsafe = false
+[highlight]
+  noClasses = true
+  style = "friendly"

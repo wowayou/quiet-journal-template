@@ -2,6 +2,16 @@
 
 只列本模板**实际使用**的软件与资源。新增/移除依赖时同步更新本文件与 `data/credits.yaml`。模板代码的 MIT 许可不替代以下资源的许可，也不涵盖作者自己的文章/照片。
 
+## 本地内容工具依赖
+
+| 名称 | 用途 | 许可证/来源 |
+|---|---|---|
+| yaml 2.9.1 | 内容摘要、配置与扩展声明的 YAML 解析，不执行内容代码 | ISC；https://github.com/eemeli/yaml |
+| yauzl 3.4.0 / yazl 3.3.1 | 受限 ZIP 解包/打包 | MIT；https://github.com/thejoshwolfe/yauzl / https://github.com/thejoshwolfe/yazl |
+| buffer-crc32 1.0.0 / pend 1.2.0 | ZIP CRC 校验（直接依赖）和 I/O 调度（传递依赖），锁文件固定 | MIT；随 npm 包完整 LICENSE |
+
+这些依赖在 Node 本地内容工具、配置/核心归属检查和测试中使用，不随访客页面运行，Hugo 本身不需要它们。根锁文件固定版本和 registry 完整性；常规安装用 `npm ci --ignore-scripts`。本轮包内实际许可已核对；分发源码或 vendored 包时仍须连同各 LICENSE 保留。
+
 ## 构建工具与构建专用字体
 
 | 名称 | 用途 | 许可证 | 来源 |

@@ -1,0 +1,5 @@
+# 实例编辑器连接；核心字段定义在 assets/admin/schema.yml。
+# 仅公开连接参数，不写访问令牌。复制模板后修改 repo。
+repo: OWNER/REPO
+branch: main
+publish_mode: simple

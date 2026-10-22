@@ -10,7 +10,7 @@
 //   - 图片内含 EXIF / XMP / IPTC / 文本块 / 时间块（JPEG、PNG、WebP 逐块解析）
 //   - 动图（GIF、动画 WebP/PNG）、HEIC/HEIF、AVIF、TIFF、视频（MOV/MP4 等）
 //   - 扩展名与实际格式不符、无法识别的二进制、超过 25 MiB
-//   - content/ 中的 SVG；含脚本或编辑器元数据的 SVG
+//   - content/ 中的 SVG；不符合被动图标白名单的 SVG
 // 提示（WARN）：文件名像相机原始命名或含日期/邮箱/中文、文件偏大。
 //
 // 说明：这里只检查「文件元数据」。照片画面里的门牌、车牌、人脸等无法自动检查。
@@ -18,6 +18,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative, extname, basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { inspectIconSvg } from "./svg.mjs";
 
 const MiB = 1024 * 1024;
 const HARD_LIMIT = 25 * MiB; // Cloudflare Pages 单文件上限
@@ -134,23 +135,11 @@ function inspectWebp(buf) {
   return [...new Set(problems)];
 }
 
-function inspectSvg(text) {
-  const problems = [];
-  if (/<script[\s>]/i.test(text)) problems.push("SVG 含 <script>");
-  if (/\son\w+\s*=/i.test(text)) problems.push("SVG 含事件处理属性");
-  if (/<metadata[\s>]|xmlns:(sodipodi|inkscape|rdf|dc)=/i.test(text)) problems.push("SVG 含编辑器元数据");
-  if (/(href|src)\s*=\s*["']\s*(https?:|data:)/i.test(text)) problems.push("SVG 引用外部或内嵌资源");
-  if (/<!DOCTYPE|<!ENTITY/i.test(text)) problems.push("SVG 不允许 DTD 或实体定义");
-  if (/<(?:foreignObject|iframe|image|use|style|animate\w*|set|a)(?:[\s/>])/i.test(text)) problems.push("SVG 不允许嵌入内容、引用或动画元素");
-  if (/\s(?:style|href|xlink:href)\s*=|(?:javascript|data)\s*:|url\s*\(/i.test(text)) problems.push("SVG 不允许动态属性或资源引用");
-  return problems;
-}
-
 /** 检查单个文件的内容。返回 { format, problems[] }。 */
 export function inspect(buf, name = "") {
   const ext = extname(name).toLowerCase();
   if (ext === ".svg") {
-    return { format: "svg", problems: inspectSvg(buf.toString("utf8")) };
+    return { format: "svg", problems: inspectIconSvg(buf.toString("utf8")) };
   }
   const format = sniff(buf);
   const problems = [];
@@ -237,8 +226,8 @@ export function checkDir(dir, area, root = dir) {
       results.push(...report(rel, fail, warn));
       continue;
     }
-    if (ext === ".svg" && (area === "content" || (area === "assets" && relative(dir, file).replaceAll("\\", "/").startsWith("media/")))) {
-      fail.push("上传区不允许 SVG（图标上传请用 PNG/WebP；内联 SVG 只能由代码维护）");
+    if (ext === ".svg" && area === "content") {
+      fail.push("正文上传区不允许 SVG；自定义 SVG 图标请放在 assets/media/，不会内联执行");
     }
 
     stats.images++;

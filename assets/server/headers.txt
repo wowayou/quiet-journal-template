@@ -23,11 +23,11 @@
   ! Cache-Control
   Cache-Control: public, max-age=31536000, immutable, no-transform
 
-# 写作界面：按 Sveltia CMS 官方建议放行（unpkg 程序、jsDelivr 字体、GitHub API/状态/头像）
+# 写作界面：unpkg 程序、jsDelivr 字体、GitHub API/状态；HTTPS 图片用于用户配置的自定义图标预览
 /admin/*
   ! Content-Security-Policy
   ! Referrer-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline'; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' blob: data: https://*.githubusercontent.com; media-src blob:; frame-src blob:; connect-src 'self' blob: data: https://unpkg.com https://api.github.com https://www.githubstatus.com; manifest-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline'; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' blob: data: https:; media-src blob:; frame-src blob:; connect-src 'self' blob: data: https://unpkg.com https://api.github.com https://www.githubstatus.com; manifest-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   Referrer-Policy: no-referrer
   ! Cache-Control
   Cache-Control: no-store, no-transform

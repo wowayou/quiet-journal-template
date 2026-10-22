@@ -1,6 +1,7 @@
 {{- /* 父页只执行同源脚本；可选评论使用受限跨源面板，不在 CMS 接受脚本。 */ -}}
 {{- $validated := partialCached "site/validate.html" . "validate" -}}
 {{- $headers := partialCached "site/headers.html" . "headers" -}}
+{{- $editor := partialCached "site/editor.html" . "editor" -}}
 {{- $site := hugo.Data.site -}}
 {{- $siteTitle := $site.title | default site.Title -}}
 {{- $title := partial "title.html" . -}}
@@ -49,6 +50,8 @@
 {{- end }}
 {{- $styles := slice (resources.Get "css/tokens.css") (resources.Get "css/base.css") (resources.Get "css/components.css") (resources.Get "css/lightbox.css") }}
 {{- $widgets := partial "widgets/for-page.html" . }}
+{{- $newsletter := partial "newsletter/for-page.html" . }}
+{{- if $newsletter }}{{ $styles = $styles | append (resources.Get "css/newsletter.css") }}{{ end }}
 {{- $comments := partial "comments/for-page.html" . }}
 {{- if $comments }}{{ $styles = $styles | append (resources.Get "css/comments.css") }}{{ end }}
 {{- if $widgets }}{{ $styles = $styles | append (resources.Get "css/widgets/base.css") }}{{ end }}

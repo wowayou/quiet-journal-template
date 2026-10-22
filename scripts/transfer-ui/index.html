@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>内容工具 · Quiet Journal</title><link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script></head>
+<body>
+<noscript><p>图形内容工具需要 JavaScript。也可按仓库中的 docs/TRANSFER.md 使用本地导出、检查和隔离导入命令；不会自动发布。</p></noscript>
+<main>
+  <header><div><p class="eyebrow">QUIET JOURNAL / 内容工具</p><h1>让内容来去自如。</h1><p class="muted">在本机整理与迁移，不改变正在使用的博客。</p></div><span class="badge">仅本地 · 不发布</span></header>
+  <p id="session" role="status">正在连接本机工具…</p>
+  <details class="location"><summary>当前博客与存放位置</summary><dl><dt>当前博客</dt><dd id="source">—</dd><dt>存放位置</dt><dd id="folder">—</dd></dl><p>使用本地已保存内容，不自动拉取远程；先保存 CMS 工作并自行同步仓库。输出不会覆盖已有目录。</p></details>
+  <div class="modes" role="group" aria-label="选择操作"><button id="export-mode" class="selected" aria-pressed="true">导出内容</button><button id="import-mode" aria-pressed="false">导入内容</button></div>
+  <section id="export-view" aria-labelledby="export-title">
+    <h2 id="export-title">保存一份内容快照</h2><p class="muted">文章、图片与站点内容设置，一起保留。</p>
+    <div id="inventory" class="stats"><span>正在检查本地内容…</span></div>
+    <label><input id="settings" type="checkbox" checked> 包含站名、导航与友链等内容设置</label>
+    <label class="format">保存格式 <select id="format"><option value="zip">ZIP 内容包（方便带走，不加密）</option><option value="directory">普通目录（兼容旧工具）</option></select></label>
+    <p class="privacy">包含草稿、未来文章和未引用图片。请保存在私人位置，不用于公开分享。</p>
+    <div class="actionbar"><label class="consent"><input id="consent" type="checkbox"> 我了解其中包含私人内容</label><button id="export" class="primary" disabled>生成内容包</button></div>
+  </section>
+  <section id="import-view" aria-labelledby="import-title" hidden>
+    <h2 id="import-title">先看清，再恢复</h2><p class="muted">选择后自动检查，写入只发生在新隔离目录。</p>
+    <label class="choose" id="drop" for="zip-file"><strong>选择或拖放 ZIP 内容包</strong><span>文件仅传到这台电脑，不上传到外部网站。</span><input id="zip-file" type="file" accept=".zip,application/zip"></label>
+    <details><summary>使用旧版目录快照</summary><label for="snapshot">存放目录中的快照</label><div class="row"><select id="snapshot"><option value="">请选择快照</option></select><button id="refresh">刷新列表</button></div><p class="hint">保留旧格式：manifest.json + files/。也可将外部目录填写在下面，只读检查、不写回。</p><div class="row"><label for="directory-path" class="sr-only">外部目录的完整路径</label><input id="directory-path" type="text" placeholder="完整目录路径"><button id="select-directory">检查此目录</button></div></details>
+    <div id="review" hidden tabindex="-1"><h3>内容包检查结果</h3><div id="package-summary" class="stats"></div><div id="comparison"></div>
+      <div class="filters"><select id="filter" aria-label="查看差异"><option value="changed">需要关注</option><option value="conflict">内容不同</option><option value="all">全部</option></select><input id="search" type="search" placeholder="查找文件路径" aria-label="查找文件路径"><button id="report">下载完整报告</button></div>
+      <ul id="files" class="files"></ul><div class="row"><button id="previous">上一页</button><span id="page-number"></span><button id="next">下一页</button></div>
+      <p class="privacy">原有草稿／公开标记保持不变。内容不同只提示，不自动合并；恢复不等于发布。</p>
+      <label><input id="import-consent" type="checkbox"> 我已查看比较结果，确认恢复到新目录</label><div class="actionbar"><button id="inspect">重新检查</button><button id="import" class="primary" disabled>确认，恢复到新目录</button></div>
+    </div>
+  </section>
+  <section id="result-section" hidden aria-busy="false" tabindex="-1"><h2>操作结果</h2><p id="result" role="status" aria-live="polite"></p><p id="output" class="path"></p><div class="row"><button id="refresh-task">核对任务</button><button id="copy" hidden>复制保存路径</button><button id="download" hidden>下载内容包</button><button id="cancel" hidden>取消操作</button></div><p id="recovery" class="hint"></p></section>
+  <dialog id="diff" aria-labelledby="diff-title"><h2 id="diff-title">只读文字比较</h2><div class="diff"><div><h3>当前博客</h3><pre id="diff-current"></pre></div><div><h3>内容包</h3><pre id="diff-incoming"></pre></div></div><button id="diff-close">关闭</button></dialog>
+  <footer><details><summary>使用说明与安全边界</summary><p>不读取 CMS 令牌，不操作 Git，不自动发布。内容包不含主题、部署配置、Git 历史、外部评论库或订阅者名单。文件权限与 ZIP 都不等于加密。</p><p>最多 10,000 个文件、单文件 25 MiB、总内容 1 GiB。格式、路径、完整性或媒体检查失败即停止。每个任务限两分钟，一次只运行一个。用完在终端按 Ctrl+C 关闭。</p></details></footer>
+</main>
+</body>
+</html>

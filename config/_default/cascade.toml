@@ -1,0 +1,5 @@
+# 核心媒体发布防线：所有 bundle 的原始资源默认不发布。
+[build]
+  publishResources = false
+[target]
+  path = "/**"

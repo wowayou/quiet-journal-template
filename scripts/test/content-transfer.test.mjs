@@ -79,8 +79,8 @@ test("内容传输：禁止向源目录及任意 Git/Hugo 工作区输出，源�
 }));
 
 test("内容传输：清单拒绝路径越界、隐藏文件、代码、设备名和不可移植名称", () => {
-  for (const path of ["/content/x.md", "../x.md", "content/../../x.md", "content/./x.md", "content//x.md", "content/.env", "content/.hidden/x.md", "content/../x.md", "content/%2e%2e/x.md", "content/x\\y.md", "content/C:/x.md", "content/nul.md", "content/a./x.md", "content/x\n.md", "content/x\u202e.md", "static/admin/x.js", "assets/media/x.svg", "assets/media/x.gif", "data/unknown.yaml", "data/comments.yaml", "integrations/waline/config.local.json", "integrations/waline-server/.env.local", "integrations/waline-server/comments.dump", "content/x.html", "content/x.js"]) assert.throws(() => validatePath(path), Error, path);
-  for (const path of ["content/posts/_index.md", "content/posts/固定-id/index.md", "assets/media/a-b.webp", "data/site.yaml"]) assert.equal(validatePath(path), path);
+  for (const path of ["/content/x.md", "../x.md", "content/../../x.md", "content/./x.md", "content//x.md", "content/.env", "content/.hidden/x.md", "content/../x.md", "content/%2e%2e/x.md", "content/x\\y.md", "content/C:/x.md", "content/nul.md", "content/a./x.md", "content/x\n.md", "content/x\u202e.md", "static/admin/x.js", "content/x.svg", "assets/media/x.gif", "data/unknown.yaml", "data/comments.yaml", "integrations/waline/config.local.json", "integrations/waline-server/.env.local", "integrations/waline-server/comments.dump", "content/x.html", "content/x.js"]) assert.throws(() => validatePath(path), Error, path);
+  for (const path of ["content/posts/_index.md", "content/posts/固定-id/index.md", "assets/media/a-b.webp", "assets/media/icon.svg", "data/site.yaml"]) assert.equal(validatePath(path), path);
 });
 
 test("内容传输：版本、字段、数量、单文件/总量与重复路径都须先验证", () => using(({ output, exp }) => {

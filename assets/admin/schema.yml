@@ -1,20 +1,4 @@
-# 编辑器适配层，可由模板作者或使用者修改；站点不依赖 CMS 运行。
-# 只替换 backend.repo；不要把访问令牌写进文件。完整约定见 docs/EDITING.md。
-backend:
-  name: github
-  repo: OWNER/REPO          # ← 你的私有仓库，不是模板仓库
-  branch: main
-  auth_methods: [token]
-  commit_messages:
-    create: "add {{collection}}: {{slug}}"
-    update: "update {{collection}}: {{slug}}"
-    delete: "remove {{collection}}: {{slug}}"
-    uploadMedia: "upload {{path}}"
-    deleteMedia: "remove {{path}}"
-
-# simple：保存到 main；是否公开由 draft 控制。每次保存会触发已有的生产构建。
-# 可选 editorial_workflow：草稿进入分支；还需 Pull requests 读写权限，见 EDITING.md。
-publish_mode: simple
+# 核心编辑器字段与上传规则；实例仓库/分支/工作流在 data/editor.yaml。
 media_folder: assets/media
 public_folder: /media
 media_libraries:
@@ -236,8 +220,9 @@ collections:
                   - &custom_icon
                     <<: *site_image
                     name: icon_image
-                    label: 自定义图标
-                    hint: 可上传自己的 PNG/JPEG/WebP，优先于内建图标；透明背景在深浅色都应清晰可见。
+                    label: 自定义图标（上传或粘贴 HTTPS 图片地址）
+                    accept: image/svg+xml,image/png,image/jpeg,image/webp
+                    hint: 支持 SVG/PNG/JPEG/WebP，优先于内建图标。外链须为完整 HTTPS 图片地址（不是个人主页）；会由读者浏览器直接访问。推荐下载后上传，避免外站失效与访问记录。SVG 最多 256 KiB，仅支持静态图形和简单颜色样式，不接受脚本、外部引用、动画或编辑器元数据。
                   - &icon_only { name: icon_only, label: 只显示图标, widget: boolean, default: true, required: false }
                   - &target
                     name: target
@@ -356,6 +341,14 @@ collections:
         fields:
           - { name: enabled, label: 启用评论入口, widget: boolean, default: false, hint: 先按 COMMENTS.md 部署并验收隔离面板与 Waline 服务，不能仅打开开关。 }
           - { name: origin, label: 隔离面板的 HTTPS 源, required: false, hint: '例如 https://comments.example.com，不带路径。必须与博客不同源；这里不填写 API、数据库或邮件密钥。' }
+      - name: newsletter
+        label: 邮件订阅（先开通账号，默认不发信）
+        file: data/newsletter.yaml
+        fields:
+          - { name: enabled, label: 显示邮件订阅表单, widget: boolean, default: false, hint: 先确认 Buttondown 账号及免费范围；这里只显示入口，不自动发送邮件。 }
+          - { name: username, label: Buttondown 用户名, required: false, hint: 仅用户名，不是网址或 API 令牌；开启时必须填写。 }
+          - { name: heading, label: 小标题, required: false, default: 喜欢这些记录？ }
+          - { name: text, label: 订阅说明, widget: text, required: false, hint: 说明真实发送频率；未开启自动发送时不要承诺每篇通知。 }
       - name: answers
         label: 答案之书的句子
         file: data/answers.yaml

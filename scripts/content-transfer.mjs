@@ -8,6 +8,7 @@ import { basename, dirname, extname, join, resolve, sep } from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { inspect } from "./check-media.mjs";
+import { parseDocument } from "yaml";
 
 export const LIMITS = Object.freeze({ files: 10000, fileBytes: 25 * 1024 ** 2, totalBytes: 1024 ** 3, manifestBytes: 4 * 1024 ** 2, depth: 16 });
 const FORMAT = "quiet-journal-content";
@@ -36,13 +37,12 @@ export function validatePath(path) {
   const ext = extname(path).toLowerCase();
   const allowed = DATA_FILES.includes(path)
     || (path.startsWith("content/") && (ext === ".md" || IMAGE_EXTENSIONS.has(ext)))
-    || (path.startsWith("assets/media/") && IMAGE_EXTENSIONS.has(ext));
+    || (path.startsWith("assets/media/") && (IMAGE_EXTENSIONS.has(ext) || ext === ".svg"));
   if (!allowed) fail(`不在内容传输白名单：${path}`);
   return path;
 }
 
-function validatePaths(paths) {
-  const prefixes = new Map();
+export function validatePaths(paths, prefixes = new Map()) {
   for (const path of paths) {
     validatePath(path);
     const parts = path.split("/");
@@ -59,7 +59,7 @@ function validatePaths(paths) {
 }
 
 // Check ancestors too: a valid-looking file must not be reached through a symlink directory.
-function checkedFile(root, path) {
+export function checkedFile(root, path) {
   let current = root;
   const parts = path.split("/");
   for (let i = 0; i < parts.length; i++) {
@@ -71,7 +71,7 @@ function checkedFile(root, path) {
 }
 
 // A file that grows while being read cannot cause an unbounded allocation.
-function readBounded(path, limit) {
+export function readBounded(path, limit) {
   const fd = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
   try {
     const before = fstatSync(fd);
@@ -126,9 +126,9 @@ function sourcePaths(root, directoryPaths) {
   return scan(root, starts, directoryPaths);
 }
 
-function contentBytes(root, path) {
-  const bytes = readBounded(checkedFile(root, path), LIMITS.fileBytes);
-  if (IMAGE_EXTENSIONS.has(extname(path).toLowerCase())) {
+export function contentBytes(root, path, limit = LIMITS.fileBytes) {
+  const bytes = readBounded(checkedFile(root, path), limit);
+  if (IMAGE_EXTENSIONS.has(extname(path).toLowerCase()) || extname(path).toLowerCase() === ".svg") {
     const result = inspect(bytes, path);
     if (result.problems.length) fail(`${path}：媒体检查失败（${result.problems.join("；")}）`);
   } else {
@@ -137,9 +137,10 @@ function contentBytes(root, path) {
   return bytes;
 }
 
-function entriesFor(root, paths) {
+function entriesFor(root, paths, progress = () => {}) {
   let total = 0;
-  const files = paths.map((path) => {
+  const files = paths.map((path, index) => {
+    progress({ stage: "checking", current: index, total: paths.length, path });
     const bytes = contentBytes(root, path);
     total += bytes.length;
     if (total > LIMITS.totalBytes) fail("内容总量超过 1 GiB 上限，请分批处理或另行规划迁移。");
@@ -153,7 +154,7 @@ function requirePrivateConsent(consent) {
   if (consent !== true) fail("内容含草稿、未引用图片及个人设置；确认不会公开上传后，显式添加 --include-private。");
 }
 
-function newOutput(path, sourceRoot) {
+export function newOutput(path, sourceRoot) {
   const absolute = resolve(path);
   const parent = realpathSync(dirname(absolute)); // Parent must exist; never create a path implicitly.
   const output = join(parent, basename(absolute));
@@ -168,7 +169,7 @@ function newOutput(path, sourceRoot) {
   return output;
 }
 
-function createOutput(output, populate) {
+export function createOutput(output, populate) {
   mkdirSync(output, { mode: 0o700 }); // Atomic no-clobber check, including concurrent invocations.
   try { return populate(); }
   catch (error) {
@@ -178,35 +179,66 @@ function createOutput(output, populate) {
   }
 }
 
-function writeNew(root, path, bytes) {
+export function writeNew(root, path, bytes) {
   const file = join(root, path);
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
   writeFileSync(file, bytes, { flag: "wx", mode: 0o600 });
 }
 
-function verifiedCopy(source, output, files, prefix = "") {
-  for (const entry of files) {
+function verifiedCopy(source, output, files, prefix = "", progress = () => {}) {
+  for (const [index, entry] of files.entries()) {
+    progress({ stage: "copying", current: index, total: files.length, path: entry.path });
     const bytes = contentBytes(source, entry.path);
     if (bytes.length !== entry.bytes || sha256(bytes) !== entry.sha256) fail(`源文件已改变或校验失败：${entry.path}。请暂停编辑后重新操作。`);
     writeNew(output, `${prefix}${entry.path}`, bytes);
   }
 }
 
+export const fingerprint = (value) => sha256(Buffer.from(JSON.stringify(value)));
+export function summarizeContent(root, files) {
+  const counts = { posts: 0, pages: 0, drafts: 0, future: 0, images: 0, settings: 0 };
+  const notices = [];
+  for (const entry of files) {
+    if (entry.path.startsWith("data/")) { counts.settings++; continue; }
+    if (extname(entry.path).toLowerCase() !== '.md') { counts.images++; continue; }
+    if (entry.path.startsWith("content/posts/") && !entry.path.toLowerCase().endsWith("/_index.md")) counts.posts++; else counts.pages++;
+    const text = contentBytes(root, entry.path).toString("utf8").replace(/^\uFEFF/, "");
+    const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text);
+    if (!match) { notices.push(`${entry.path}：无 YAML 文首信息，状态未知。`); continue; }
+    try {
+      const doc = parseDocument(match[1], { uniqueKeys: true, schema: "core" });
+      if (doc.errors.length) throw doc.errors[0];
+      const data = doc.toJS({ maxAliasCount: 50 });
+      if (data?.draft === true) counts.drafts++;
+      else if (data?.draft !== undefined && data.draft !== false) notices.push(`${entry.path}：草稿字段不是布尔值。`);
+      if (data?.date) { const date = Date.parse(data.date); if (!Number.isFinite(date)) notices.push(`${entry.path}：日期无法识别。`); else if (date > Date.now()) counts.future++; }
+    } catch { notices.push(`${entry.path}：文首信息无法解析，未猜测草稿状态。`); }
+  }
+  return { ...counts, notices };
+}
+export function inventoryContent({ source, includeSettings = true, progress = () => {} }) {
+  const root = rootDirectory(source);
+  const files = entriesFor(root, sourcePaths(root).filter((path) => includeSettings || !DATA_FILES.includes(path)), progress);
+  return { ...summary(files), counts: summarizeContent(root, files), fingerprint: fingerprint(files) };
+}
+
 const summary = (files) => ({ files: files.length, bytes: files.reduce((sum, file) => sum + file.bytes, 0), includesPrivate: true });
 
-export function exportContent({ source, output, includePrivate = false }) {
+export function exportContent({ source, output, includePrivate = false, includeSettings = true, progress = () => {} }) {
   requirePrivateConsent(includePrivate);
   const root = rootDirectory(source);
   const target = newOutput(output, root);
-  const files = entriesFor(root, sourcePaths(root));
+  const paths = sourcePaths(root).filter((path) => includeSettings || !DATA_FILES.includes(path));
+  const files = entriesFor(root, paths, progress);
   const manifest = { format: FORMAT, version: 1, createdAt: new Date().toISOString(), includesPrivate: true, files };
   const json = JSON.stringify(manifest, null, 2) + "\n";
   if (Buffer.byteLength(json) > LIMITS.manifestBytes) fail("清单超过 4 MiB 上限。");
   return createOutput(target, () => {
-    verifiedCopy(root, target, files, "files/");
+    verifiedCopy(root, target, files, "files/", progress);
     // Detect additions, deletions and changes made while the snapshot was being copied.
-    if (JSON.stringify(entriesFor(root, sourcePaths(root))) !== JSON.stringify(files)) fail("导出期间源目录改变；已取消，请暂停编辑后重试。");
+    if (JSON.stringify(entriesFor(root, sourcePaths(root).filter((path) => includeSettings || !DATA_FILES.includes(path)), progress)) !== JSON.stringify(files)) fail("导出期间源目录改变；已取消，请暂停编辑后重试。");
     writeNew(target, "manifest.json", json); // Completeness marker is written last.
+    progress({ stage: "copying", current: files.length, total: files.length });
     return { operation: "export", output: target, ...summary(files) };
   });
 }
@@ -227,7 +259,7 @@ export function validateManifest(manifest) {
   return manifest;
 }
 
-export function readSnapshot(source) {
+export function readSnapshot(source, progress = () => {}) {
   const root = rootDirectory(source);
   if (readdirSync(root).sort().join(",") !== "files,manifest.json") fail("内容包根目录只能包含 manifest.json 和 files/，不能夹带其他文件。");
   const manifest = validateManifest(JSON.parse(utf8.decode(readBounded(checkedFile(root, "manifest.json"), LIMITS.manifestBytes))));
@@ -237,7 +269,7 @@ export function readSnapshot(source) {
   const paths = scan(payload, [""]);
   const expected = manifest.files.map((entry) => entry.path).sort();
   if (JSON.stringify(paths) !== JSON.stringify(expected)) fail("内容包有额外或缺失文件。");
-  const actual = entriesFor(payload, paths);
+  const actual = entriesFor(payload, paths, progress);
   const entries = new Map(manifest.files.map((entry) => [entry.path, entry]));
   for (const entry of actual) {
     const wanted = entries.get(entry.path);
@@ -246,9 +278,13 @@ export function readSnapshot(source) {
   return { root, payload, manifest };
 }
 
-export function inspectContent({ source, compare }) {
-  const snapshot = readSnapshot(source);
+export function inspectContent({ source, compare, progress = () => {} }) {
+  const snapshot = readSnapshot(source, progress);
   const result = { operation: "inspect", ...summary(snapshot.manifest.files) };
+  result.entries = snapshot.manifest.files;
+  result.counts = summarizeContent(snapshot.payload, snapshot.manifest.files);
+  result.createdAt = snapshot.manifest.createdAt;
+  result.snapshotFingerprint = fingerprint(snapshot.manifest);
   if (compare) {
     const target = rootDirectory(compare);
     const directories = [];
@@ -261,6 +297,9 @@ export function inspectContent({ source, compare }) {
       if (existing && (existing.path !== path || !existing.directory)) fail(`比较目标存在大小写/Unicode/目录冲突：${path}`);
       current.set(key, { path, directory: true });
     }
+    const targetEntries = targetPaths.length ? entriesFor(target, targetPaths, progress) : [];
+    result.targetFingerprint = fingerprint({ files: targetEntries, directories: [...directories].sort() });
+    const targetByPath = new Map(targetEntries.map((entry) => [entry.path, entry]));
     result.comparison = snapshot.manifest.files.map((entry) => {
       const parts = entry.path.split("/");
       for (let i = 1; i <= parts.length; i++) {
@@ -270,8 +309,8 @@ export function inspectContent({ source, compare }) {
       }
       const existing = current.get(portableKey(entry.path));
       if (!existing) return { path: entry.path, status: "add" };
-      const bytes = readBounded(checkedFile(target, existing.path), LIMITS.fileBytes);
-      return { path: entry.path, status: bytes.length === entry.bytes && sha256(bytes) === entry.sha256 ? "same" : "conflict" };
+      const actual = targetByPath.get(existing.path);
+      return { path: entry.path, status: actual.bytes === entry.bytes && actual.sha256 === entry.sha256 ? "same" : "conflict" };
     });
     result.conflicts = result.comparison.filter((item) => item.status === "conflict").length;
     const incoming = new Set(snapshot.manifest.files.map((entry) => portableKey(entry.path)));
@@ -280,14 +319,24 @@ export function inspectContent({ source, compare }) {
   return result;
 }
 
-export function importContent({ source, output, includePrivate = false }) {
+export function importContent({ source, output, includePrivate = false, review, compare, progress = () => {} }) {
   requirePrivateConsent(includePrivate);
-  const snapshot = readSnapshot(source);
+  if (review) {
+    const checked = inspectContent({ source, compare, progress });
+    if (checked.snapshotFingerprint !== review.snapshotFingerprint || checked.targetFingerprint !== review.targetFingerprint) fail("内容包或当前博客已改变，请重新检查并确认后再导入。");
+  }
+  const snapshot = readSnapshot(source, progress);
+  if (review && fingerprint(snapshot.manifest) !== review.snapshotFingerprint) fail("内容包在确认后改变，请重新检查。");
   const target = newOutput(output, snapshot.root);
   const result = { operation: "import", output: target, ...summary(snapshot.manifest.files), filesWritten: snapshot.manifest.files, notice: "仅恢复到隔离目录。原有草稿/公开标记未改；先审查、合并配置与构建，再决定发布。不是完整站点或 Git 历史备份。" };
   return createOutput(target, () => {
-    verifiedCopy(snapshot.payload, target, snapshot.manifest.files);
+    verifiedCopy(snapshot.payload, target, snapshot.manifest.files, "", progress);
+    if (review) {
+      const after = inspectContent({ source, compare, progress });
+      if (after.snapshotFingerprint !== review.snapshotFingerprint || after.targetFingerprint !== review.targetFingerprint) fail("检查与恢复期间内容发生变化，已取消，请重新预览。");
+    }
     writeNew(target, "IMPORT-REPORT.json", JSON.stringify(result, null, 2) + "\n");
+    progress({ stage: "copying", current: snapshot.manifest.files.length, total: snapshot.manifest.files.length });
     return { ...result, filesWritten: undefined };
   });
 }

@@ -181,7 +181,7 @@ KB/MB 为十进制原始字节量，2 MiB 是 2,097,152 字节；不是网络压
 
 ## 8. 主要依据
 
-- 项目：`static/admin/config.yml`、`config/_default/hugo.toml`、`layouts/home.html`、`layouts/_partials/archive-list.html`、`layouts/_partials/widgets/search-index.html`、`assets/js/widgets/search.js`、`layouts/_partials/site/validate-routes.html`、`scripts/check-site.mjs`、`scripts/backup.sh`。
+- 项目：`assets/admin/schema.yml` + `data/editor.yaml`（替代旧静态 config）、`config/_default/hugo.toml`、`layouts/home.html`、`layouts/_partials/archive-list.html`、`layouts/_partials/widgets/search-index.html`、`assets/js/widgets/search.js`、`layouts/_partials/site/validate-routes.html`、`scripts/check-site.mjs`、`scripts/backup.sh`。
 - Sveltia 0.235.1：[列表工具栏](https://github.com/sveltia/sveltia-cms/blob/v0.235.1/src/lib/components/contents/list/primary-toolbar.svelte)、[列表](https://github.com/sveltia/sveltia-cms/blob/v0.235.1/src/lib/components/contents/list/entry-list.svelte)、[删除确认](https://github.com/sveltia/sveltia-cms/blob/v0.235.1/src/lib/components/contents/details/delete-entry-dialog.svelte)、[删除实现](https://github.com/sveltia/sveltia-cms/blob/v0.235.1/src/lib/services/contents/collection/data/delete.js)、[GitHub 文件加载](https://github.com/sveltia/sveltia-cms/blob/v0.235.1/src/lib/services/backends/git/github/files.js)。本地源文件已与固定版本的上游工具栏逐字节核对，运行主程序与项目 SRI 一致。
 - [Hugo URL 与 aliases](https://gohugo.io/content-management/urls/)、[Google URL 结构指南](https://developers.google.com/search/docs/crawling-indexing/url-structure)。
 - [Pagefind](https://pagefind.app/)、[中文与多语言支持](https://pagefind.app/docs/multilingual/)。

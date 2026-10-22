@@ -1,6 +1,6 @@
 # 修改外观与设置
 
-Sveltia CMS（内容管理系统）只是文件编辑界面。模板作者和使用者都能修改它的字段、提示、排序和工具栏：改 `static/admin/config.yml`，不必 fork 编辑器。**改配置不会自动实现新功能**，新行为仍需对应模板或脚本，见 [EXTENDING.md](EXTENDING.md)。
+Sveltia CMS（内容管理系统）只是文件编辑界面。模板作者和使用者都能修改它的字段、提示、排序和工具栏：核心字段、提示和排序在 `assets/admin/schema.yml`，实例连接在 `data/editor.yaml`，新增字段/集合可用 `data/editor_extensions.yaml`；Hugo 生成后台配置，不编辑静态副本。**改配置不会自动实现新功能**，新行为仍需对应模板或脚本，见 [EXTENDING.md](EXTENDING.md)。
 
 ## 日常入口
 
@@ -47,7 +47,9 @@ nav:
 
 favicon 推荐正方形 **512×512**。CMS 会处理为 WebP；构建输出 32×32、192×192 PNG 以及 180×180 Apple 触屏图标。留空用模板的 `static/favicon.svg`。
 
-社交与导航自定义图标使用 `icon_image: /media/my-icon.webp`，优先于内建 `icon`。接受 PNG/JPEG/WebP；最长边处理到 512，单次上传限制 2 MiB。显示时保留完整比例，不把窄长图撑出按钮。请自己检查透明图标在深浅色下都看得清。
+社交与导航自定义图标用 `icon_image`，优先于内建 `icon`。可上传 PNG/JPEG/WebP 或静态 SVG，也可粘贴完整的 **HTTPS 图片地址**（不是个人主页）。例如 `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/linuxdo.svg`，相应的 WebP 地址也支持。外链路径须以 `.svg/.png/.jpg/.jpeg/.webp` 结尾，可带查询参数，不接受凭据或片段。构建不下载外链，由读者浏览器直接加载，并设置 `referrerpolicy=no-referrer`；配置外链即会增加对该图片源的请求/访问记录及可用性依赖，后台预览同样会请求。推荐先下载后上传，避免图标失效并保持同源加载。
+
+本地引用为 `/media/my-icon.svg` 或 `/media/my-icon.webp`。位图仍会重编码，CMS 最长边 512、上传限 2 MiB。SVG 最多 256 KiB，只接受基础静态图形和 `.class { fill: #颜色; }` 一类简单颜色样式；不支持脚本、事件、外部引用、`use`、动画、任意 CSS 或编辑器元数据。复杂 SVG 请先转换为 PNG/WebP。SVG 作为带指纹的 `<img>` 发布，绝不以内联代码执行；外链文件不在构建检查范围内。显示时保留完整比例，请检查透明图标在深浅色下都看得清。
 
 ```yaml
 social:
@@ -61,8 +63,23 @@ social:
 
 - 列表顺序就是显示顺序，可在 CMS 拖动；多了自动换行，不藏进横向滚动条。首页和页脚共用同一份列表。
 - 内建图标：`home search calendar link github x mastodon telegram bilibili douban sinaweibo instagram zhihu xiaohongshu mail rss`。未知但格式合法的图标名显示通用链接图标；新增内建 SVG 属于代码维护。
-- **上传区不接受 SVG/ICO**。SVG 能包含脚本、外部引用和动画，不将其作为普通图片输入接口；代码维护的 SVG 也必须经过媒体检查。
+- **favicon 仍只接受本地 PNG/JPEG/WebP，正文不接受 SVG**；SVG 只用于共享图标区并通过媒体检查，ICO 不开放上传。不要通过 SVG 安装插件。自定义图标地址非法或文件不存在时，构建明确失败，不能把远程仓库已保存误认为线上已更新；请同时核对部署检查。
 - `me: true` 表示“这是我自己的身份主页”，不是“我喜欢这个链接”。不要给友链、模板仓库或赞助活动页加身份声明。
+
+## 邮件订阅（可选）
+
+在 CMS“邮件订阅”或 `data/newsletter.yaml` 设置：
+
+```yaml
+enabled: true
+username: your-buttondown-name
+heading: 喜欢这些记录？
+text: 偶尔把新文章和近况寄给你。确认邮箱后开始接收，随时退订。
+```
+
+须先自行开通账号、核对实际套餐及免费范围；默认关闭，不能填示例账号就当开通。仅公开文章文末提供原生邮箱表单、页脚留邮件链接；无第三方脚本/iframe/预连接，提交才前往 Buttondown 验证。生成的 CSP 只对含表单的文章放行精确提交地址，`/admin/` 策略不扩大。单纯改这里不会发信、创建自动化、导入名单或开启 RSS-to-email；后者需单独核价授权，见 [RESEARCH.md](RESEARCH.md)。
+
+每篇表单使用独立的精确路径策略；Cloudflare 静态响应头最多 100 条路径规则、每行 2,000 字符，构建按字节作保守校验。自定义规则与文章合计超限会停止，不截断文章策略，也不自动放宽到全站。规模接近限额时先重新设计并验收路径规则；临时可关闭本可选入口，不据此开启付费能力。
 
 ## 链接与分享
 

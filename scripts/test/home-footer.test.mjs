@@ -109,9 +109,9 @@ test("页脚：RSS、技术回链、模板回链与回到顶部独立开关，�
 }));
 
 test("无 RSS 输出时不留下空的联系分组，已有社交入口仍可用", () => using((f) => {
-  const config = read(f.root, "config/_default/hugo.toml");
+  const config = read(f.root, "config/_default/outputs.toml");
   assert.ok(config.includes('home = ["html", "rss"]'));
-  put(f.root, "config/_default/hugo.toml", config.replace('home = ["html", "rss"]', 'home = ["html"]'));
+  put(f.root, "config/_default/outputs.toml", config.replace('home = ["html", "rss"]', 'home = ["html"]'));
   for (const social of [[], [{ label: "个人主页", icon: "link", url: "https://example.org/" }]]) {
     f.site.social = social; f.saveSite(); success(f);
     const home = read(f.root, "public/index.html");
@@ -122,7 +122,7 @@ test("无 RSS 输出时不留下空的联系分组，已有社交入口仍可用
 }));
 
 test("欢迎区不改文章地址、分页与订阅；子路径和草稿隔离保留", () => using((f) => {
-  put(f.root, "config/_default/hugo.toml", read(f.root, "config/_default/hugo.toml").replace("pagerSize = 12", "pagerSize = 1"));
+  put(f.root, "config/_default/pagination.toml", read(f.root, "config/_default/pagination.toml").replace("pagerSize = 12", "pagerSize = 1"));
   put(f.root, "content/posts/a/index.md", document({ title: "精选文章", date: "2020-01-02T00:00:00Z", featured: true }, "正文。"));
   put(f.root, "content/posts/hidden/index.md", document({ title: "HIDDEN_HOME_MARKER", date: "2020-01-01T00:00:00Z", featured: true, draft: true }));
   put(f.root, "content/posts/future/index.md", document({ title: "FUTURE_HOME_MARKER", date: "2099-01-01T00:00:00Z", featured: true }));

@@ -21,8 +21,13 @@ try {
   const integrity = `sha384-${createHash("sha384").update(bundle).digest("base64")}`;
   ok("离线主程序与固定 SRI 一致", read(f.root, "static/admin/index.html").includes(integrity));
   // A non-default global value proves that the 'site' choice really preserves the file config.
-  put(f.root, "static/admin/config.yml", read(f.root, "static/admin/config.yml").replace("quality: 85", "quality: 67"));
-  f.site.sharing.generate = false; f.saveSite();
+  put(f.root, "assets/admin/schema.yml", read(f.root, "assets/admin/schema.yml").replace("quality: 85", "quality: 67"));
+  f.site.sharing.generate = false;
+  f.site.social = [
+    { label: "SVG roundtrip", url: "https://example.org/", icon: "link", icon_image: "" },
+    { label: "HTTPS SVG", url: "https://example.org/", icon: "link", icon_image: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/linuxdo.svg" },
+  ];
+  f.saveSite();
   assert.equal(build(f.root).status, 0);
   server = await staticServer(join(f.root, "public"), (_req, res, path) => {
     if (blockPart && path === `/admin/${blockPart}`) { res.writeHead(503).end("Intentional missing host script"); return true; }
@@ -36,7 +41,7 @@ try {
       res.setHeader("Content-Type", "text/javascript"); res.end(bundle); return true;
     }
     if (path === "/admin/" || path === "/admin/index.html") { res.setHeader("Content-Type", "text/html"); res.end(read(f.root, "public/admin/index.html").replace("https://unpkg.com/@sveltia/cms@0.235.1/dist/sveltia-cms.js", "/admin/vendor.js")); return true; }
-    if (path === "/admin/config.yml") { res.setHeader("Content-Type", "text/yaml"); res.end(read(f.root, "public/admin/config.yml").replace("name: github", "name: test-repo")); return true; }
+    if (path === "/admin/config.yml") { const config = JSON.parse(read(f.root, "public/admin/config.yml")); config.backend.name = "test-repo"; res.setHeader("Content-Type", "text/yaml"); res.end(JSON.stringify(config)); return true; }
     return false;
   });
   browser = await launchBrowser(); const ev = browser.evaluate; const exceptions = [];
@@ -122,6 +127,25 @@ try {
   assert.deepEqual(saved.get("assets/media/probe-icon.webp"), await reference(90, 512));
   ok("图标字段仍是 512×256 / quality=90，没有被普通图片的高质量覆盖", inspect(saved.get("assets/media/probe-icon.webp"), "probe-icon.webp").problems.length === 0);
   ok("CMS 设置往返仍保留导航页面 ID", /page: about/.test(saved.get("data/site.yaml").toString()));
+  // Exercise the real image widget's SVG acceptance and field-level overrides.
+  await ev(`location.hash='#/collections/settings/entries/site'`);
+  await until(`document.querySelector('[data-key-path="social"]')`);
+  await ev(`document.querySelector('[data-key-path="social"]').scrollIntoView({block:'center'})`);
+  await wait(400);
+  await ev(`document.querySelector('[data-key-path="social"] button[aria-expanded="false"]')?.click()`);
+  await wait(400);
+  await ev(`[...document.querySelectorAll('[data-key-path="social"] button')].find(button=>button.textContent.trim()==='Expand All')?.click()`);
+  await wait(400);
+  await ev(`document.querySelector('[data-key-path="social"]').scrollIntoView({block:'center'})`);
+  await wait(400);
+  await ev(`document.querySelector('[data-key-path="social"] button[aria-controls$="-item-0-body"][aria-expanded="false"]')?.click()`);
+  await wait(400);
+  const vector = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><defs><style>.a{fill:#feb005;}</style></defs><circle class="a" cx="10" cy="10" r="9"/></svg>';
+  put(f.root, "probe-vector.svg", vector);
+  await upload("social.0.icon_image", join(f.root, "probe-vector.svg")); await save(); await wait(600); saved = await stored();
+  const uploadedVector = saved.get("assets/media/probe-vector.svg");
+  ok("CMS 自定义图标接受真实 SVG 上传，不转成位图且可通过媒体检查", !!uploadedVector && inspect(uploadedVector, "probe-vector.svg").problems.length === 0 && /icon_image: \/media\/probe-vector.svg/.test(saved.get("data/site.yaml").toString()));
+  ok("CMS 保存设置仍保留 HTTPS SVG 地址，不改成资源路径", saved.get("data/site.yaml").toString().includes("icon_image: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/linuxdo.svg"));
 
   // Preserve the previous editor-component and stable-ID regression with the new host wrapper.
   await ev(`location.hash='#/collections/pages/new'`); await setTitle("LINK_ROUNDTRIP_MARKER");
@@ -164,9 +188,18 @@ try {
   await ev(`document.querySelector('[data-key-path="comments"] [role=switch], [data-key-path="comments"] [role=checkbox], [data-key-path="comments"] input[type=checkbox]').click()`);
   await save(); await wait(500); saved = await stored();
   ok("CMS 可保存单篇关闭留言，不改文章文件 ID", /comments: false/.test(saved.get("content/posts/a/index.md").toString()));
+  await ev(`location.hash='#/collections/settings/entries/newsletter'`);
+  await until(`document.querySelector('[data-key-path="username"] input')`);
+  await ev(`(()=>{for(const[name,value]of Object.entries({username:'synthetic-user',heading:'合成订阅标题',text:'合成说明，不发送邮件'})){const field=document.querySelector('[data-key-path="'+name+'"] input, [data-key-path="'+name+'"] textarea');field.value=value;field.dispatchEvent(new Event('input',{bubbles:true}));}document.querySelector('[data-key-path="enabled"] [role=switch], [data-key-path="enabled"] [role=checkbox], [data-key-path="enabled"] input[type=checkbox]').click();})()`);
+  await save(); await wait(500); saved = await stored();
+  ok("CMS 邮件订阅保存独立账号和布尔开关，不混入评论配置或凭据", /enabled: true/.test(saved.get('data/newsletter.yaml').toString()) && /username: synthetic-user/.test(saved.get('data/newsletter.yaml').toString()) && !saved.get('data/comments.yaml').toString().includes('synthetic-user'));
+  await ev(`location.hash='#/collections/posts'`); await wait(200); await ev(`location.hash='#/collections/settings/entries/newsletter'`);
+  await until(`document.querySelector('[data-key-path="username"] input')`);
+  ok("重新打开仍保留订阅账号与中文说明", await ev(`document.querySelector('[data-key-path="username"] input').value==='synthetic-user'&&document.querySelector('[data-key-path="text"] textarea').value==='合成说明，不发送邮件'`));
   for (const [path, bytes] of saved) if (/^(content|data|assets\/media)\//.test(path)) put(f.root, path, bytes);
   assert.equal(build(f.root).status, 0);
   ok("CMS 评论配置往返后仅未关闭的文章显示入口", !read(f.root, "public/posts/a/index.html").includes("data-comments") && read(f.root, "public/posts/b/index.html").includes("data-comments"));
+  ok("CMS 保存订阅后仅文章生成原生表单与精确提交策略", read(f.root,'public/posts/a/index.html').includes('embed-subscribe/synthetic-user') && read(f.root,'public/_headers').includes("form-action 'self' https://buttondown.com/api/emails/embed-subscribe/synthetic-user") && !read(f.root,'public/about/index.html').includes('newsletter__form'));
   ok("组件往返后 HTML 保持当前标签打开", tags(read(f.root, `public/${id}/index.html`)).some((tag) => tag.name === "a" && tag.attrs.href === "https://example.org/?a=1&b=2" && !tag.attrs.target));
   ok("CMS 实际保存内容可重新构建，完整产物检查通过", checkSite(join(f.root, "public")).length === 0);
   await browser.send("Page.navigate", { url: `${server.url}/admin/tools.html` }); await wait(250);

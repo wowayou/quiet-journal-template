@@ -1,0 +1,52 @@
+{{- /* Hugo 生成后台 config.yml：一份核心字段 + 实例连接，无静态副本。 */ -}}
+{{- if fileExists "static/admin/config.yml" }}{{ errorf "static/admin/config.yml 已改为生成文件；请将 repo/branch/publish_mode 移入 data/editor.yaml，并移除旧静态配置。" }}{{ end -}}
+{{- if not (fileExists "static/admin/index.html") }}{{ return true }}{{ end -}}
+{{- $settings := hugo.Data.editor | default dict -}}
+{{- range $key, $_ := $settings }}{{ if not (in (slice "repo" "branch" "publish_mode") $key) }}{{ errorf "data/editor.yaml 含未知字段 %q；不要在此配置中写令牌或覆盖核心上传规则。" $key }}{{ end }}{{ end -}}
+{{- $repo := $settings.repo | default "" -}}
+{{- $branch := $settings.branch | default "main" -}}
+{{- $mode := $settings.publish_mode | default "simple" -}}
+{{- if not (findRE `^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$` $repo) }}{{ errorf "editor.repo 必须为 OWNER/REPO，不包含 URL 或凭据。" }}{{ end -}}
+{{- if or (not (findRE `^[A-Za-z0-9][A-Za-z0-9_./-]{0,127}$` $branch)) (in $branch "..") (in $branch "//") (hasSuffix $branch "/") (hasSuffix $branch ".lock") }}{{ errorf "editor.branch 不是安全的 Git 分支名。" }}{{ end -}}
+{{- if not (in (slice "simple" "editorial_workflow") $mode) }}{{ errorf "editor.publish_mode 必须为 simple 或 editorial_workflow。" }}{{ end -}}
+{{- $source := resources.Get "admin/schema.yml" -}}
+{{- if not $source }}{{ errorf "缺少核心 CMS 字段 assets/admin/schema.yml。" }}{{ end -}}
+{{- $schema := $source.Content | transform.Unmarshal -}}
+{{- $backend := dict "name" "github" "repo" $repo "branch" $branch "auth_methods" (slice "token") "commit_messages" (dict "create" "add {{collection}}: {{slug}}" "update" "update {{collection}}: {{slug}}" "delete" "remove {{collection}}: {{slug}}" "uploadMedia" "upload {{path}}" "deleteMedia" "remove {{path}}") -}}
+{{- $config := merge $schema (dict "backend" $backend "publish_mode" $mode) -}}
+{{- with hugo.Data.editor_extensions -}}
+  {{- /* 仅追加新字段/集合。现有字段、认证和路径不能被扩展默默替换。 */ -}}
+  {{- range $key, $_ := . }}{{ if not (in (slice "collections" "fields") $key) }}{{ errorf "editor_extensions 只接受 collections 和 fields。" }}{{ end }}{{ end -}}
+  {{- $collections := $config.collections -}}
+  {{- range $collection := .collections -}}
+    {{- if not (findRE `^[a-z][a-z0-9_-]*$` ($collection.name | default "")) }}{{ errorf "CMS 扩展集合必须有有效 name。" }}{{ end -}}
+    {{- range $collections }}{{ if eq .name $collection.name }}{{ errorf "CMS 扩展集合 %q 与核心重复。" .name }}{{ end }}{{ end -}}
+    {{- $collections = $collections | append $collection -}}
+  {{- end -}}
+  {{- range $name, $fields := .fields -}}
+    {{- $found := false -}}
+    {{- $next := slice -}}
+    {{- range $collections -}}
+      {{- $collection := . -}}
+      {{- if eq .name $name -}}
+        {{- $found = true -}}
+        {{- if .files }}{{ errorf "files 型集合 %q 的扩展请作为独立集合声明。" $name }}{{ end -}}
+        {{- $all := .fields -}}
+        {{- range $field := $fields -}}
+          {{- if not (findRE `^[A-Za-z][A-Za-z0-9_-]*$` ($field.name | default "")) }}{{ errorf "CMS 扩展字段必须有有效 name。" }}{{ end -}}
+          {{- range $all }}{{ if eq .name $field.name }}{{ errorf "CMS 扩展字段 %s.%s 与核心重复。" $name .name }}{{ end }}{{ end -}}
+          {{- $all = $all | append $field -}}
+        {{- end -}}
+        {{- $collection = merge $collection (dict "fields" $all) -}}
+      {{- end -}}
+      {{- $next = $next | append $collection -}}
+    {{- end -}}
+    {{- if not $found }}{{ errorf "CMS 扩展字段集合 %q 不存在。" $name }}{{ end -}}
+    {{- $collections = $next -}}
+  {{- end -}}
+  {{- $config = merge $config (dict "collections" $collections) -}}
+{{- end -}}
+{{- /* JSON 是 YAML 的子集；同时作为 CMS 和测试的确定性输出，无锚点合并差异。 */ -}}
+{{- $output := resources.FromString "admin/config.yml" ($config | jsonify (dict "indent" "  ")) -}}
+{{- $published := $output.RelPermalink -}}
+{{- return true -}}
