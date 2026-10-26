@@ -1,9 +1,11 @@
 {{- /* 导航内部引用以页面 ID 保存，不依赖标题。旧 url 格式仍兼容，由产物检查兜底。
   返回 dict：items 为可显示的导航；warnings 为被跳过的项（显示在后台“网站状态”和构建日志）。
-  指向不存在或未发布页面的导航只跳过这一项，不阻止整站发布；格式类错误仍然直接失败。 */ -}}
+  指向不存在或未发布页面的导航只跳过这一项，不阻止整站发布；格式类错误仍然直接失败。
+  warnings 会写进公开的 /build.json，只用序号，不含导航名称或页面 ID（可能是未公开页面的标识）；
+  名称与 ID 只写进构建日志。 */ -}}
 {{- $items := slice -}}
 {{- $warnings := slice -}}
-{{- range hugo.Data.site.nav -}}
+{{- range $index, $_ := hugo.Data.site.nav -}}
   {{- $skip := false -}}
   {{- $url := .url | default "" -}}
   {{- $type := .type | default "legacy" -}}
@@ -12,9 +14,8 @@
   {{- else if eq $type "page" -}}
     {{- $page := site.GetPage (.page | default "__missing__") -}}
     {{- if or (not $page) (and $page (or $page.Draft ($page.Date.After now) (not ($page.OutputFormats.Get "html")))) -}}
-      {{- $msg := printf "导航“%s”指向的页面“%s”不存在或未发布，已暂时隐藏这一项。发布该页面，或在站点设置里删掉这条导航。" .label .page -}}
-      {{- warnf "%s" $msg -}}
-      {{- $warnings = $warnings | append $msg -}}
+      {{- warnf "导航“%s”指向的页面“%s”不存在或未发布，已暂时隐藏这一项。" .label .page -}}
+      {{- $warnings = $warnings | append (printf "站点设置里的第 %d 条导航指向的页面不存在或未发布，已暂时隐藏。发布该页面，或删掉这条导航。" (add $index 1)) -}}
       {{- $skip = true -}}
     {{- else -}}
       {{- $url = $page.RelPermalink -}}

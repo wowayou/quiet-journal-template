@@ -1,5 +1,6 @@
 {{- /* 生成 /build.json：网站生成时间与本次被跳过的设置。后台“网站状态”读取它，作者不用去翻构建日志。
-  只含公开信息（时间、提示文字），不含提交、账户或路径。 */ -}}
+  只含公开信息（时间、固定提示文字与序号），不含提交、账户、路径，也不含作者填写的名称、页面 ID 或挂件 ID
+  （被跳过的往往正是未公开的东西）。详细值只在构建日志里。新增提示须遵守同一规则。 */ -}}
 {{- $warnings := slice -}}
 {{- $warnings = $warnings | append (partialCached "navigation.html" . "navigation").warnings -}}
 {{- $warnings = $warnings | append (partialCached "widgets/enabled.html" . "widgets").warnings -}}

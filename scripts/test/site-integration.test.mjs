@@ -15,9 +15,13 @@ const using = (fn) => { const f = fixture(); try { fn(f); } finally { f.cleanup(
 
 // The broken nav entry disappears, the rest of the site still builds, and the author is told why.
 const navSkipped = (f) => {
-  success(build(f.root));
+  const result = build(f.root); success(result);
   assert.ok(!/href=["']?\/now\//.test(read(f.root, "public/index.html").match(/<nav[\s\S]*?<\/nav>/)[0]));
-  assert.match(JSON.parse(read(f.root, "public/build.json")).warnings.join(), /导航“现在”指向的页面“now”不存在或未发布/);
+  // Public status uses the ordinal only; the label and page ID stay in the build log.
+  const status = read(f.root, "public/build.json");
+  assert.match(JSON.parse(status).warnings.join(), /第 \d+ 条导航指向的页面不存在或未发布/);
+  assert.ok(!status.includes("现在") && !/\bnow\b/.test(status), status);
+  assert.match(result.stderr + result.stdout, /导航“现在”指向的页面“now”不存在或未发布/);
 };
 
 test("生产输出：日期、页面类型、文字 OG、RSS、无字体下载与完整内部链接", () => using((f) => {
@@ -211,9 +215,13 @@ test("挂件白名单、重复 ID、插槽、空答案和资源缺失在构建�
   f.widgets[0].type = "not-a-plugin"; f.saveWidgets(); failed(build(f.root), /未注册的挂件/);
   f.widgets[0].type = "search"; f.widgets[1].id = "Bad ID"; f.saveWidgets(); failed(build(f.root), /ID 无效/);
   // A duplicate ID keeps the first widget and reports the rest; it no longer blocks the site.
-  f.widgets[1].id = "find"; f.widgets[1].enabled = true; f.widgets[1].slot = "home-after-intro"; f.saveWidgets(); success(build(f.root));
+  f.widgets[1].id = "find"; f.widgets[1].enabled = true; f.widgets[1].slot = "home-after-intro"; f.saveWidgets();
+  const duplicate = build(f.root); success(duplicate);
   assert.equal((read(f.root, "public/index.html").match(/id=["']?widget-find/g) || []).length, 1);
-  assert.match(JSON.parse(read(f.root, "public/build.json")).warnings.join(), /挂件 ID“find”重复/);
+  const status = read(f.root, "public/build.json");
+  assert.match(JSON.parse(status).warnings.join(), /第 2 个与前面的挂件 ID 重复/);
+  assert.ok(!status.includes("find") && !status.includes(f.widgets[1].title), status);
+  assert.match(duplicate.stderr + duplicate.stdout, /挂件 ID“find”重复/);
   f.widgets[1].enabled = false; f.widgets[1].slot = "content-after";
   f.widgets[1].id = "book"; f.widgets[0].slot = "random"; f.saveWidgets(); failed(build(f.root), /不支持插槽/);
   f.widgets[0].slot = "home-after-intro"; f.widgets[1].enabled = true; f.saveWidgets();

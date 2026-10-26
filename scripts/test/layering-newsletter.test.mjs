@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, rmSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, mkdirSync, existsSync, symlinkSync, lstatSync, readdirSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixture, put, build, read, repo } from './site-fixture.mjs';
 import { tags, checkSite } from '../check-site.mjs';
@@ -157,5 +157,39 @@ test('升级应用：无冲突时一次更新/新增/删除核心文件并写新
   // Re-running is a no-op.
   const again=applyUpgrade({current:a.root,upstream:b.root,previous:JSON.parse(read(a.root,'core-manifest.json'))});
   assert.deepEqual([again.updated.length,again.removed.length],[0,0]);
+ }finally{a.cleanup();b.cleanup();}
+});
+test('升级应用：预置的临时名符号链接、清单符号链接和中途写入失败都不会改写个人文件，失败时旧清单与核心保持不变',()=>{
+ const a=fixture(),b=fixture();try {
+  const before=coreManifest(a.root,'v-before');put(a.root,'core-manifest.json',JSON.stringify(before));
+  const personal='assets/css/overrides.css',personalText=read(a.root,personal),baseText=read(a.root,'assets/css/base.css');
+  put(b.root,'assets/css/base.css',baseText+'\n/* core update */');
+  put(b.root,'layouts/_partials/zz-new-core.html','<p>new</p>');
+  put(b.root,'core-manifest.json',JSON.stringify(coreManifest(b.root,'v-next')));
+  // 1) Names an older version used for its temp file now point at a personal file: never followed.
+  for(const name of ['assets/css/base.css.qj-upgrade','layouts/_partials/zz-new-core.html.qj-upgrade']) symlinkSync(join(a.root,personal),join(a.root,name));
+  const result=applyUpgrade({current:a.root,upstream:b.root,previous:before});
+  assert.equal(read(a.root,personal),personalText);
+  assert.equal(read(a.root,'assets/css/base.css'),read(b.root,'assets/css/base.css'));assert.ok(lstatSync(join(a.root,'assets/css/base.css')).isFile());
+  assert.deepEqual(result.updated.sort(),['assets/css/base.css','layouts/_partials/zz-new-core.html']);
+  assert.ok(lstatSync(join(a.root,'assets/css/base.css.qj-upgrade')).isSymbolicLink()); // Left untouched, not ours.
+  for(const name of ['assets/css/base.css.qj-upgrade','layouts/_partials/zz-new-core.html.qj-upgrade']) rmSync(join(a.root,name));
+  // 2) A symlinked manifest is refused before any write.
+  const c=fixture();try {
+   const old=coreManifest(c.root,'v-before');put(c.root,'.manifest-target.json',JSON.stringify(old));rmSync(join(c.root,'core-manifest.json'),{force:true});symlinkSync(join(c.root,'.manifest-target.json'),join(c.root,'core-manifest.json'));
+   assert.throws(()=>applyUpgrade({current:c.root,upstream:b.root,previous:old}),/核心清单不是普通文件/);
+   assert.equal(read(c.root,'assets/css/base.css'),baseText);assert.deepEqual(JSON.parse(read(c.root,'.manifest-target.json')),old);
+  }finally{c.cleanup();}
+  // 3) A write that fails while staging the second file leaves every target, the manifest and no temp files behind.
+  const d=fixture();try {
+   const old=coreManifest(d.root,'v-before');put(d.root,'core-manifest.json',JSON.stringify(old));
+   const locked=join(d.root,'layouts/_partials');chmodSync(locked,0o555);
+   try { assert.throws(()=>applyUpgrade({current:d.root,upstream:b.root,previous:old}),/EACCES|permission/i); } finally { chmodSync(locked,0o755); }
+   assert.equal(read(d.root,'assets/css/base.css'),baseText);assert.ok(!existsSync(join(d.root,'layouts/_partials/zz-new-core.html')));
+   assert.deepEqual(JSON.parse(read(d.root,'core-manifest.json')),old);assert.equal(read(d.root,personal),personalText);
+   for(const dir of ['assets/css','layouts/_partials','.']) assert.deepEqual(readdirSync(join(d.root,dir)).filter(n=>n.includes('.qj-upgrade')),[],dir);
+   // After the cause is fixed the same command completes.
+   assert.equal(applyUpgrade({current:d.root,upstream:b.root,previous:old}).updated.length,2);
+  }finally{d.cleanup();}
  }finally{a.cleanup();b.cleanup();}
 });

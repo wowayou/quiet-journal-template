@@ -43,9 +43,13 @@ node scripts/core-upgrade.mjs apply   /可信的新核心目录                 
 
 比较旧核心基线、实例现有文件和新发行：same/update/remove/conflict，若新核心恰好使用已声明个人扩展的路径则标为 protected（受保护），仅生成报告，不写入、不删文件、不执行 Git。已有定制冲突须人工合并；任何一方文件在比较期间变化会拒绝报告；输出带旧/新清单指纹供核对。
 
-`apply` 以实例当前的 `core-manifest.json` 为旧基线（也可传第二个参数）：只要有 conflict，或新核心改动了已声明为个人扩展的路径，就停止且不改任何文件；否则写入 update、删除仍与旧基线一致的 remove，最后写新清单并再次比较确认。不碰内容、数据、媒体、个人样式和扩展，不提交、不推送、不部署；应用后先跑 `npm test` 和 `npm run build` 再提交。中途中断可直接重跑。准备新的发行清单时用 `manifest <明确版本>`，已有清单不会自动覆盖，先审查新版本内容。
+`apply` 以实例当前的 `core-manifest.json` 为旧基线（也可传第二个参数）：只要有 conflict，或新核心改动了已声明为个人扩展的路径，就停止且不改任何文件；否则写入 update、删除仍与旧基线一致的 remove，最后写新清单并再次比较确认。不碰内容、数据、媒体、个人样式和扩展，不提交、不推送、不部署；应用后先跑 `npm test` 和 `npm run build` 再提交。写入前先检查全部目标：符号链接的目录或清单直接拒绝；新文件先写入独占创建的临时文件并校验，再替换目标，不会顺着已有的链接写到别的文件；任一写入失败则清理临时文件，旧清单与核心保持不变。替换阶段中断（断电等）时旧清单仍在，直接重跑即可。准备新的发行清单时用 `manifest <明确版本>`，已有清单不会自动覆盖，先审查新版本内容。
 
 从旧单文件配置迁移：把媒体/显示时区移入 `params.toml`，日期/渲染等移入对应核心分片，核对有效值与原配置一致；CMS repo/branch/publish_mode 移入 `data/editor.yaml`，原字段归入核心 schema 或显式扩展，再移除 `static/admin/config.yml`。不要留双份来源，直接 Hugo 与 npm 构建都能生成后台配置。
+
+## 2026-10-27.1：网站状态不再公开未发布页面标识，升级写入更安全
+
+用 `node scripts/core-upgrade.mjs apply <新核心目录>` 应用。更新 `layouts/_partials/navigation.html`、`widgets/enabled.html`、`site/status.html` 与 `scripts/core-upgrade.mjs`。`/build.json` 的提示改为只写序号（“第 3 条导航”），导航名称、页面 ID、挂件 ID 只在构建日志里。个人扩展若读取这两个 partial 的 `.warnings` 并解析里面的名称，请改读构建日志。设置无需迁移。
 
 ## 2026-10-26.5：网站状态、跨项设置不阻断发布、一键应用核心
 

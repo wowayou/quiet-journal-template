@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Explicit core ownership, three-way upgrade preview, and conflict-free apply. No Git operations or network.
-import { readFileSync, readdirSync, lstatSync, existsSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync, renameSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { readFileSync, readdirSync, lstatSync, existsSync, writeFileSync, mkdirSync, unlinkSync, renameSync, openSync, writeSync, fsyncSync, closeSync, rmSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
 import { resolve, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseDocument } from "yaml";
@@ -116,40 +116,70 @@ export function previewUpgrade({ current, upstream, previous }) {
   return { operation: "preview-only", previousFingerprint, nextFingerprint, from: before.version, to: next.version, files: result, conflicts: result.filter((e) => e.status === "conflict").length, notice: "仅比较受管核心，不应用、删除、提交或部署。实例文件保持不变。" };
 }
 // Apply only when the preview is clean: no conflicts, and no core change on a path the instance
-// declared as its own. Copies update/add files, removes core files the release dropped (only when
-// still identical to the old baseline), then writes the new manifest last so an interrupted run
-// is simply re-run. Never touches content, data, media, personal styles or declared extensions.
+// declared as its own. Everything is checked before the first write. New files are written to
+// exclusively created temp files (never through an existing name or symlink), verified, then renamed
+// over the target; rename replaces a symlinked target instead of following it. Removals only delete
+// regular files still identical to the old baseline. The manifest is replaced last the same way, so
+// an interrupted or failed run leaves the old manifest and can simply be re-run.
+// Never touches content, data, media, personal styles or declared extensions.
 export function applyUpgrade({ current, upstream, previous }) {
   const plan = previewUpgrade({ current, upstream, previous });
-  const blocked = plan.files.filter((entry) => entry.status === "conflict" || (entry.status === "protected" && previous.files[entry.path] !== JSON.parse(readFileSync(join(upstream, "core-manifest.json"), "utf8")).files[entry.path]));
+  const nextText = readFileSync(join(upstream, "core-manifest.json"));
+  if (createHash("sha256").update(JSON.stringify(JSON.parse(nextText))).digest("hex") !== plan.nextFingerprint) throw new Error("发行清单在预览后改变，未做任何修改。");
+  const next = JSON.parse(nextText);
+  const blocked = plan.files.filter((entry) => entry.status === "conflict" || (entry.status === "protected" && previous.files[entry.path] !== next.files[entry.path]));
   if (blocked.length) throw new Error(`有 ${blocked.length} 个文件需要先人工合并，未做任何修改：${blocked.slice(0, 5).map((e) => e.path).join("、")}${blocked.length > 5 ? " 等" : ""}`);
-  const next = JSON.parse(readFileSync(join(upstream, "core-manifest.json"), "utf8"));
   const root = resolve(current), done = { updated: [], removed: [] };
-  const safeTarget = (path) => {
-    // Refuse to write through a symlinked or non-directory parent inside the instance.
+  // Every existing parent inside the instance must be a real directory (not a symlink).
+  const checkParents = (path) => {
     let at = root;
     for (const part of path.split("/").slice(0, -1)) {
       at = join(at, part);
-      if (existsSync(at)) { const stat = lstatSync(at); if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error(`目标目录不是普通目录：${path}`); }
+      if (existsSync(at) || isLink(at)) { const stat = lstatSync(at); if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error(`目标目录不是普通目录，未做任何修改：${path}`); }
     }
     return join(root, path);
   };
-  for (const entry of plan.files) {
-    if (entry.status === "update") {
-      const target = safeTarget(entry.path), temp = `${target}.qj-upgrade`;
+  const manifestPath = checkParents("core-manifest.json");
+  if (isLink(manifestPath) || (existsSync(manifestPath) && !lstatSync(manifestPath).isFile())) throw new Error("核心清单不是普通文件，未做任何修改。");
+  const updates = plan.files.filter((entry) => entry.status === "update");
+  const removals = plan.files.filter((entry) => entry.status === "remove" && entry.currentSHA256 !== undefined);
+  for (const entry of [...updates, ...removals]) checkParents(entry.path);
+  // Stage: write every new file to its own exclusive temp file and verify it before touching any target.
+  const staged = [];
+  const stage = (target, bytes) => {
+    const temp = `${target}.qj-upgrade-${process.pid}-${randomBytes(6).toString("hex")}`;
+    const fd = openSync(temp, "wx", 0o644); // O_CREAT|O_EXCL: fails instead of following an existing name.
+    staged.push(temp);
+    try { writeSync(fd, bytes); fsyncSync(fd); } finally { closeSync(fd); }
+    return temp;
+  };
+  try {
+    for (const entry of updates) {
+      const target = join(root, entry.path), bytes = readFileSync(join(upstream, entry.path));
+      if (createHash("sha256").update(bytes).digest("hex") !== next.files[entry.path]) throw new Error(`发行文件不匹配清单，未做任何修改：${entry.path}`);
       mkdirSync(dirname(target), { recursive: true });
-      copyFileSync(join(upstream, entry.path), temp); renameSync(temp, target);
-      if (hash(target) !== next.files[entry.path]) throw new Error(`写入后校验失败：${entry.path}`);
-      done.updated.push(entry.path);
-    } else if (entry.status === "remove" && entry.currentSHA256 !== undefined) {
-      unlinkSync(safeTarget(entry.path)); done.removed.push(entry.path);
+      checkParents(entry.path); // Re-check after creating directories.
+      const temp = stage(target, bytes);
+      if (hash(temp) !== next.files[entry.path]) throw new Error(`暂存文件校验失败，未做任何修改：${entry.path}`);
+      entry.temp = temp;
     }
+    const manifestTemp = stage(manifestPath, JSON.stringify(next, null, 2) + "\n");
+    // Commit: rename staged files into place, then remove dropped files, then the manifest last.
+    for (const entry of updates) { renameSync(entry.temp, join(root, entry.path)); staged.splice(staged.indexOf(entry.temp), 1); done.updated.push(entry.path); }
+    for (const entry of removals) {
+      const target = join(root, entry.path);
+      if (isLink(target) || !lstatSync(target).isFile() || hash(target) !== entry.currentSHA256) throw new Error(`待删除文件在应用期间改变：${entry.path}。清单未更新，请检查后重新运行。`);
+      unlinkSync(target); done.removed.push(entry.path);
+    }
+    renameSync(manifestTemp, manifestPath); staged.splice(staged.indexOf(manifestTemp), 1);
+  } finally {
+    for (const temp of staged) rmSync(temp, { force: true }); // Only our own exclusive temp files.
   }
-  writeFileSync(join(root, "core-manifest.json"), JSON.stringify(next, null, 2) + "\n");
   const after = previewUpgrade({ current, upstream, previous: next });
   if (after.files.some((entry) => !["same", "protected"].includes(entry.status))) throw new Error("应用后复核不一致，请检查工作区（未提交、未部署）。");
   return { operation: "applied", from: plan.from, to: plan.to, updated: done.updated, removed: done.removed, notice: "只改受管核心文件与核心清单；未提交、未推送、未部署。请先运行测试和构建再提交。" };
 }
+function isLink(path) { try { return lstatSync(path).isSymbolicLink(); } catch { return false; } }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const [command, ...args] = process.argv.slice(2);
