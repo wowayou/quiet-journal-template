@@ -162,7 +162,8 @@ console.log("\n[5b] 页面结构与交互");
 const page = (p) => readFileSync(join(pub, p), "utf8");
 const home = page("index.html");
 check("theme.js 同步加载、lightbox.js 延迟加载，均带 SRI", /<script[^>]+theme\.min\.[0-9a-f]+\.js[^>]+integrity=/.test(home) && /<script[^>]+lightbox\.min\.[0-9a-f]+\.js[^>]+integrity=[^>]+defer/.test(home));
-check("首页：大标题、精选、最近、文章列表", /class="?hero"?/.test(home) && /id="?featured-title/.test(home) && (home.match(/class="?post-item"?/g) || []).length >= 5);
+// The only featured post is already in "最近" on page 1, so 精选 must not repeat it.
+check("首页：大标题、最近、文章列表；精选不重复本页已列出的文章", /class="?hero"?/.test(home) && !/id="?featured-title/.test(home) && (home.match(/class="?post-item"?/g) || []).length >= 4 && (home.match(/普通短记/g) || []).length === 1);
 check("<html> 带强调色 data-accent=orange", /<html[^>]+data-accent="?orange/.test(home));
 check("页头有菜单按钮（aria-controls 指向导航）", /aria-controls="?site-nav/.test(home));
 check("页面中没有 id=top（回到顶部按规范滚到页首，不被吸顶页头吞掉）", !/id="?top"?[\s>]/.test(home) && /href="?#top"?/.test(home));

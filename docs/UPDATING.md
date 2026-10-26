@@ -44,6 +44,10 @@ node scripts/core-upgrade.mjs preview /可信的新核心目录 /旧核心清单
 
 从旧单文件配置迁移：把媒体/显示时区移入 `params.toml`，日期/渲染等移入对应核心分片，核对有效值与原配置一致；CMS repo/branch/publish_mode 移入 `data/editor.yaml`，原字段归入核心 schema 或显式扩展，再移除 `static/admin/config.yml`。不要留双份来源，直接 Hugo 与 npm 构建都能生成后台配置。
 
+## 2026-10-26.3：首屏线描移到右侧
+
+更新 `layouts/home.html`（文字包进 `.hero__body`，精选去重）、`layouts/_partials/archive-list.html`、`layouts/_partials/widgets/search.html`、`assets/js/widgets/search.js`、`assets/css/components.css`、`assets/css/widgets/search.css`。设置无需迁移。归档不再使用 `.post-list--compact`；个人样式若改过它，请改用 `.archive__item`。友链页说明是你的内容，可按需自行去掉维护说明。
+
 ## 2026-10-26.2：精简首屏与页脚
 
 更新 `layouts/home.html`、`layouts/page.html`、`layouts/_partials/footer.html`、`layouts/_partials/media.html` 与 `assets/css/components.css`、`tokens.css`（移除 `--wide-width`）。设置无需迁移。若 `overrides.css` 用过 `.hero__copy`、`.hero__social`、`.hero__rss`、`.site-footer__identity/__top/__bottom/__name/__label` 或 `--wide-width`，这些选择器已不存在，请改用 `.hero`、`.site-footer__row`、`.site-footer__legal`。

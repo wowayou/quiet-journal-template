@@ -1,3 +1,5 @@
+/* 搜索可用时导航里已有归档，不再重复；无 JS、表单未启用或索引读取失败时仍显示 */
+.search-form:not([hidden]):not([data-failed]) ~ .search-fallback { display: none; }
 .search-form { display: flex; align-items: stretch; gap: var(--space-2); }
 .search-form input { min-width: 0; flex: 1; min-height: 44px; padding: var(--space-2) var(--space-3); font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); }
 .search-form input::placeholder { color: var(--muted); opacity: 1; }

@@ -99,10 +99,13 @@ try {
     await ev("document.querySelector('[data-theme-toggle]').click()");
     ok(`${width}px：深浅色按钮有反馈`, await ev(`document.documentElement.dataset.theme !== ${JSON.stringify(previous)}`));
     await wait(550);
-    ok(`${width}px：首屏单栏，线描、标题、介绍、开始阅读自上而下且不超出正文栏`, await ev(`(() => {
-      const main = document.querySelector('main').getBoundingClientRect();
-      const parts = ['.hero__artwork', '.hero__title', '.hero__text', '.hero__read'].map((s) => document.querySelector(s).getBoundingClientRect());
-      return parts.every((r, i) => r.left >= main.left - 1 && r.right <= main.right + 1 && (i === 0 || r.top >= parts[i - 1].bottom - 1));
+    ok(`${width}px：首屏宽屏文字左、线描右（不留大块空白），窄屏线描在上；都不超出正文栏`, await ev(`(() => {
+      const hero = document.querySelector('.hero').getBoundingClientRect(), art = document.querySelector('.hero__artwork').getBoundingClientRect();
+      const text = ['.hero__title', '.hero__text', '.hero__read'].map((s) => document.querySelector(s).getBoundingClientRect());
+      const inside = [art, ...text].every((r) => r.left >= hero.left - 1 && r.right <= hero.right + 1);
+      const ordered = text.every((r, i) => i === 0 || r.top >= text[i - 1].bottom - 1);
+      const layout = ${width} > 704 ? art.left >= Math.max(...text.map((r) => r.right)) - 1 && art.right >= hero.right - 2 : art.bottom <= text[0].top + 1;
+      return inside && ordered && layout;
     })()`));
     ok(`${width}px：页脚一句话在上，联系入口与回到顶部同组，版权在最下`, await ev(`(() => {
       const q = document.querySelector('.site-footer__quote').getBoundingClientRect(), row = document.querySelector('.site-footer__row').getBoundingClientRect(), legal = document.querySelector('.site-footer__legal').getBoundingClientRect();
@@ -162,13 +165,15 @@ try {
   ok("答案之书可翻页且不连续重复", await ev(`document.querySelector('[data-answer]').textContent !== ${JSON.stringify(before)}`));
   ok("两个挂件均有无障碍状态提示", await ev("[...document.querySelectorAll('[data-search-status], [data-answer]')].every(node => node.getAttribute('aria-live') === 'polite')"));
 
-  indexFails = true; await go(); await input("雨后");
+  indexFails = true; await go();
+  ok("搜索可用时不重复显示归档入口", await ev("getComputedStyle(document.querySelector('.search-fallback')).display === 'none'"));
+  await input("雨后");
   await until("document.querySelector('[data-search-status]').textContent.includes('重试')");
-  ok("搜索网络失败有重试与归档入口", true);
+  ok("搜索网络失败有重试与可见的归档入口", await ev("getComputedStyle(document.querySelector('.search-fallback')).display !== 'none'"));
   indexFails = false;
   await ev("document.querySelector('[data-search-form]').requestSubmit()");
   await until("document.querySelector('[data-search-results] li')");
-  ok("网络恢复后重试成功，不缓存失败", true);
+  ok("网络恢复后重试成功，不缓存失败，归档入口重新收起", await ev("getComputedStyle(document.querySelector('.search-fallback')).display === 'none'"));
 
   for (const width of [1280, 390]) {
     await viewport(width); await go("/posts/wide/");
@@ -199,7 +204,7 @@ try {
 
   await browser.send("Emulation.setScriptExecutionDisabled", { value: true }); await viewport(390); await go();
   ok("无 JS 时导航可见", await ev("getComputedStyle(document.querySelector('#site-nav')).visibility === 'visible'"));
-  ok("无 JS 时搜索不显示失效输入框，归档可用", await ev("document.querySelector('[data-search-form]').hidden && document.querySelector('[data-widget=search] a').getAttribute('href') === '/archive/'"));
+  ok("无 JS 时搜索不显示失效输入框，归档可用", await ev("document.querySelector('[data-search-form]').hidden && document.querySelector('[data-widget=search] a').getAttribute('href') === '/archive/' && getComputedStyle(document.querySelector('.search-fallback')).display !== 'none'"));
   ok("无 JS 时答案保留静态句子", await ev("document.querySelector('[data-answer]').textContent.length > 0 && document.querySelector('[data-answer-button]').hidden"));
   ok("无 JS 时常显导航随页面滚动，不遮挡阅读锚点", await ev("getComputedStyle(document.querySelector('.site-header')).position === 'static'"));
   for (const width of [390, 320]) {

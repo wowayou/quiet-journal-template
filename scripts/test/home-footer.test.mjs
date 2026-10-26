@@ -145,6 +145,10 @@ test("欢迎区不改文章地址、分页与订阅；子路径和草稿隔离�
     assert.ok(elements.some((tag) => tag.name === "a" && tag.attrs.href === `/journal/posts/${expectedPost}/`));
     assert.equal(elements.some((tag) => tag.attrs.id === "featured-title"), path === "index.html");
   }
+  // 精选 on page 1 shows the featured post only because it is not in page 1's 最近 list.
+  const first = read(f.root, "public/index.html"), second = read(f.root, "public/page/2/index.html");
+  assert.equal((plain(first).match(/精选文章/g) || []).length, 1);
+  assert.equal((plain(second).match(/精选文章/g) || []).length, 1);
   const files = allFiles(join(f.root, "public"));
   assert.ok(files.includes("posts/a/index.html") && files.includes("posts/b/index.html"));
   assert.ok(!files.includes("posts/hidden/index.html") && !files.includes("posts/future/index.html"));
@@ -152,4 +156,19 @@ test("欢迎区不改文章地址、分页与订阅；子路径和草稿隔离�
     assert.doesNotMatch(read(f.root, `public/${file}`), /HIDDEN_HOME_MARKER|FUTURE_HOME_MARKER/);
   }
   assert.doesNotMatch(read(f.root, "public/index.xml"), /hero__artwork|site-footer__/);
+}));
+
+test("精选不重复本页“最近”已列出的文章；归档每篇一行、日期只写日并保留完整机器时间", () => using((f) => {
+  put(f.root, "content/posts/a/index.md", document({ title: "精选在首页", date: "2020-01-02T08:00:00+08:00", featured: true }, "正文。"));
+  success(f);
+  const home = read(f.root, "public/index.html");
+  assert.ok(!tags(home).some((tag) => tag.attrs.id === "featured-title"));
+  assert.equal((plain(home).match(/精选在首页/g) || []).length, 1);
+  const archive = read(f.root, "public/archive/index.html");
+  const items = byClass(archive, "archive__item");
+  assert.equal(items.length, 2);
+  assert.equal(byClass(archive, "post-item__summary").length, 0);
+  const time = tags(archive).find((tag) => tag.name === "time" && tag.attrs.datetime?.startsWith("2020-01-02T08:00:00"));
+  assert.ok(time, "machine-readable full time stays");
+  assert.match(archive, /<time datetime=["']?2020-01-02T08:00:00\+08:00["']?>2 日<\/time>/);
 }));

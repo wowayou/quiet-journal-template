@@ -28,7 +28,7 @@ summary: ""          # 列表摘要；留空取正文
 description: ""      # 搜索/分享简介；不是关键词堆砌区
 cover: ""            # 分享封面；留空取首图，再用全站图或生成文字卡片
 cover_alt: ""
-featured: false      # 首页最多 3 篇精选
+featured: false      # 首页最多 3 篇精选；已在本页“最近”里的不重复
 search_exclude: false # 不进站内搜索，不代表私密
 comments: true       # 仅文章：全站评论已开通时允许留言；false 不删除服务端旧评论
 draft: true          # true = 不发布正文和随页图片

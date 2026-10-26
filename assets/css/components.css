@@ -202,17 +202,21 @@ html:not(.js) .site-header { position: static; }
   .js .site-nav a { padding: 0.8rem var(--space-4); font-size: var(--text-lg); }
 }
 
-/* ---------- 首页：单栏首屏，无卡片 ---------- */
+/* ---------- 首页：无卡片；宽屏文字左、线描右，窄屏线描在上 ---------- */
 .hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  grid-template-areas: "body art";
+  align-items: center;
+  gap: var(--space-6);
   margin: var(--space-4) 0 var(--space-5);
 }
+.hero__body { grid-area: body; min-width: 0; }
 .hero__artwork {
+  grid-area: art;
   display: block;
-  width: auto;
+  width: 100%;
   height: auto;
-  max-width: 100%;
-  max-height: 112px;
-  margin-bottom: var(--space-4);
   color: var(--accent);
 }
 .hero__sun { opacity: 0.12; }
@@ -243,7 +247,8 @@ html:not(.js) .site-header { position: static; }
 .hero__read:hover { text-decoration: underline dashed; }
 
 @media (max-width: 44rem) {
-  .hero__artwork { max-height: 88px; }
+  .hero { grid-template-columns: minmax(0, 1fr); grid-template-areas: "art" "body"; gap: var(--space-4); }
+  .hero__artwork { width: auto; max-width: 100%; max-height: 88px; }
 }
 
 .section {
@@ -312,8 +317,6 @@ html:not(.js) .site-header { position: static; }
 
 .post-item__summary { margin-top: var(--space-1); }
 
-.post-list--compact .post-item + .post-item { margin-top: var(--space-3); }
-.post-list--compact .post-item__summary { display: none; }
 
 /* ---------- 分页 ---------- */
 .pagination {
@@ -446,6 +449,18 @@ html:not(.js) .site-header { position: static; }
 }
 
 .archive__count { color: var(--muted); font-size: var(--text-sm); font-weight: 400; }
+
+.archive__list { list-style: none; margin: 0; padding: 0; }
+.archive__item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-1) 0;
+}
+.archive__item a { min-width: 0; color: var(--accent); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.archive__item a:hover { text-decoration: underline dashed; text-decoration-thickness: 1px; }
+.archive__item time { flex-shrink: 0; color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
 
 .archive__month {
   margin: var(--space-5) 0 var(--space-3);

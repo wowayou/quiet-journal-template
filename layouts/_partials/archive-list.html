@@ -4,7 +4,12 @@
   <h2 id="y-{{ .Key }}" class="archive__year-title">{{ .Key }}<span class="archive__count">{{ len .Pages }} 篇</span></h2>
   {{- range .Pages.GroupByDate "1" }}
   <h3 class="archive__month">{{ .Key }} 月</h3>
-  <ul class="post-list post-list--compact">{{ range .Pages }}{{ partial "post-item.html" . }}{{ end }}</ul>
+  <ul class="archive__list">
+    {{- range .Pages }}
+    {{- $d := time.In (site.Params.timeZone | default "UTC") .Date }}
+    <li class="archive__item"><a href="{{ .RelPermalink }}">{{ partial "title.html" . }}</a><time datetime="{{ $d.Format "2006-01-02T15:04:05Z07:00" }}">{{ $d.Format "2" }} 日</time></li>
+    {{- end }}
+  </ul>
   {{- end }}
 </section>
 {{- else }}

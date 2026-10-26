@@ -3,18 +3,21 @@
 {{- $hero := $site.hero | default dict }}
 {{- $posts := where site.RegularPages "Section" "posts" }}
 {{- $pager := .Paginate $posts }}
-{{- /* 首屏只放线描、问候与介绍；社交和 RSS 统一在页脚，不在首屏重复。 */}}
+{{- /* 首屏：宽屏文字在左、线描在右，窄屏线描在上；社交和 RSS 统一在页脚，不在首屏重复。 */}}
 <section class="hero" aria-labelledby="welcome-title">
   {{- partial "home/artwork.html" . }}
-  {{- with $site.description }}<p class="hero__eyebrow">{{ . }}</p>{{ end }}
-  <h1 class="hero__title" id="welcome-title">{{ $hero.title | default ($site.title | default site.Title) }}</h1>
-  {{- with $hero.text }}<div class="hero__text">{{ . | markdownify }}</div>{{ end }}
-  <a class="hero__read" href="#recent-title">开始阅读{{ partial "icon.html" (dict "name" "arrow-right" "size" 16) }}</a>
+  <div class="hero__body">
+    {{- with $site.description }}<p class="hero__eyebrow">{{ . }}</p>{{ end }}
+    <h1 class="hero__title" id="welcome-title">{{ $hero.title | default ($site.title | default site.Title) }}</h1>
+    {{- with $hero.text }}<div class="hero__text">{{ . | markdownify }}</div>{{ end }}
+    <a class="hero__read" href="#recent-title">开始阅读{{ partial "icon.html" (dict "name" "arrow-right" "size" 16) }}</a>
+  </div>
 </section>
 
 {{- partial "widgets/slot.html" (dict "page" . "slot" "home-after-intro") }}
 
-{{- $featured := where $posts "Params.featured" true }}
+{{- /* 精选只显示本页“最近”里没有的，避免同一篇出现两次 */}}
+{{- $featured := complement $pager.Pages (where $posts "Params.featured" true) }}
 {{- if and $featured (eq $pager.PageNumber 1) }}
 <section class="section" aria-labelledby="featured-title">
   <h2 class="section__title" id="featured-title">精选</h2>

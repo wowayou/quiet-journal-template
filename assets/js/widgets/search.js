@@ -51,6 +51,7 @@ export function initSearch(root) {
     const current = ++revision;
     const query = input.value.trim();
     list.replaceChildren();
+    delete form.dataset.failed;
     if (!query) { status.textContent = idle; return; }
     status.textContent = "正在读取本站索引…";
     try {
@@ -75,6 +76,7 @@ export function initSearch(root) {
       list.append(fragment);
     } catch {
       if (current !== revision) return;
+      form.dataset.failed = ""; // Show the archive fallback the message points to.
       status.textContent = "索引暂时无法读取。请再次点「查找」重试，或使用下方归档；你的关键词没有发送到外部服务。";
     }
   }

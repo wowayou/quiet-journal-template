@@ -89,7 +89,7 @@ collections:
         name: cover_alt
         label: 分享封面的替代文本
         required: false
-      - { name: featured, label: 精选, widget: boolean, default: false, required: false, hint: 首页最多显示 3 篇精选。 }
+      - { name: featured, label: 精选, widget: boolean, default: false, required: false, hint: 首页最多显示 3 篇精选；已出现在首页“最近”里的不会重复显示。 }
       - { name: comments, label: 允许本篇留言, widget: boolean, default: true, required: false, hint: 全站评论已开通时生效。关闭不会删除或锁定独立服务中已有的评论。 }
       - &search_exclude
         name: search_exclude
