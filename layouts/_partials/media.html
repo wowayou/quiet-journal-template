@@ -17,9 +17,8 @@
 {{- $eager := .eager | default false -}}
 {{- $alt := .alt | default "" -}}
 {{- /* sizes：告诉浏览器图片大约显示多宽，手机据此只下载小尺寸版本 */ -}}
-{{- $wide := eq .page.Params.kind "photo" -}}
-{{- $sizes := cond $wide "(min-width: 66rem) 64rem, 100vw" "(min-width: 44rem) 42rem, 100vw" -}}
-{{- if eq $ctx "inline" }}{{ $sizes = cond $wide "(min-width: 66rem) 32rem, 50vw" "(min-width: 44rem) 21rem, 50vw" }}{{ end -}}
+{{- /* 所有图片都不超出正文栏 */ -}}
+{{- $sizes := cond (eq $ctx "inline") "(min-width: 44rem) 21rem, 50vw" "(min-width: 44rem) 42rem, 100vw" -}}
 
 {{- $src := "" -}}
 {{- $srcset := "" -}}

@@ -38,7 +38,7 @@ test("自定义图标：外部 HTTPS SVG/WebP 原址输出且不在构建抓取�
     assert.deepEqual(checkSite(join(f.root, "public")), []);
     const elements = tags(read(f.root, "public/index.html"));
     const images = elements.filter((tag) => tag.name === "img" && tag.attrs.class.includes("icon--uploaded"));
-    assert.equal(images.filter((image) => image.attrs.src.startsWith("https://")).length, 4); // Header + footer social links.
+    assert.equal(images.filter((image) => image.attrs.src.startsWith("https://")).length, 2); // Footer social links (the welcome area no longer repeats them).
     const local = images.find((image) => image.attrs.src.startsWith("/media/custom."));
     assert.ok(local); assert.match(local.attrs.src, /\.[a-f\d]{64}\.svg$/);
     assert.equal(readFileSync(join(f.root, "public", local.attrs.src), "utf8"), svg);

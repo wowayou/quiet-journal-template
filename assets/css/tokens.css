@@ -51,7 +51,6 @@
 
   /* ---------- 版式 ---------- */
   --content-width: 48rem;       /* 全站单栏宽度（页头、正文、页脚对齐） */
-  --wide-width: 64rem;          /* 图文文章的宽图 */
   --header-height: 4.5rem;
   --radius-sm: 4px;
   --radius-md: 8px;

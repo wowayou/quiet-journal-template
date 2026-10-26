@@ -138,8 +138,8 @@ try {
   await browser.send("Fetch.enable", { patterns: [{ urlPattern: "https://icons.example.test/*" }] });
   browser.on((message) => { if (message.method === "Fetch.requestPaused") browser.send("Fetch.fulfillRequest", { requestId: message.params.requestId, responseCode: 200, responseHeaders: [{ name: "Content-Type", value: "image/svg+xml" }], body: Buffer.from(svg).toString("base64") }).catch(() => {}); });
   await browser.send("Page.navigate", { url: server.url });
-  await until(`document.querySelectorAll('img.icon--uploaded').length===3 && [...document.querySelectorAll('img.icon--uploaded')].every(e=>e.complete&&e.naturalWidth>0)`);
-  ok("浏览器实际解码本地与 HTTPS SVG；导航和两处社交图标可见", await ev(`[...document.querySelectorAll('img.icon--uploaded')].every(e=>e.naturalWidth>0&&getComputedStyle(e).objectFit==='contain')`));
+  await until(`document.querySelectorAll('img.icon--uploaded').length===2 && [...document.querySelectorAll('img.icon--uploaded')].every(e=>e.complete&&e.naturalWidth>0)`);
+  ok("浏览器实际解码本地与 HTTPS SVG；导航和页脚社交图标可见", await ev(`[...document.querySelectorAll('img.icon--uploaded')].every(e=>e.naturalWidth>0&&getComputedStyle(e).objectFit==='contain')`));
   for (const width of [1280, 320]) {
     await browser.send("Emulation.setDeviceMetricsOverride", { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
     ok(`图标 ${width}px 不挤出导航布局`, await ev(`document.documentElement.scrollWidth<=innerWidth`));

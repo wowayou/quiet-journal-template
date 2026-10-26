@@ -3,22 +3,13 @@
 {{- $hero := $site.hero | default dict }}
 {{- $posts := where site.RegularPages "Section" "posts" }}
 {{- $pager := .Paginate $posts }}
+{{- /* 首屏只放线描、问候与介绍；社交和 RSS 统一在页脚，不在首屏重复。 */}}
 <section class="hero" aria-labelledby="welcome-title">
-  <div class="hero__heading">
-    {{- partial "home/artwork.html" . }}
-    {{- with $site.description }}<p class="hero__eyebrow">{{ . }}</p>{{ end }}
-    <h1 class="hero__title" id="welcome-title">
-      <span>{{ $hero.title | default ($site.title | default site.Title) }}</span>
-      {{- with site.Home.OutputFormats.Get "rss" }}<a class="hero__rss" href="{{ .RelPermalink }}" aria-label="RSS 订阅" title="RSS 订阅">{{ partial "icon.html" (dict "name" "rss" "size" 22) }}</a>{{ end }}
-    </h1>
-  </div>
-  <div class="hero__copy">
-    {{- with $hero.text }}<div class="hero__text">{{ . | markdownify }}</div>{{ end }}
-    <a class="hero__read" href="#recent-title">开始阅读{{ partial "icon.html" (dict "name" "arrow-right" "size" 18) }}</a>
-    {{- with $site.social }}
-    <div class="hero__social"><span class="hero__social-label">在别处：</span>{{ partial "social.html" (dict "rss" false) }}</div>
-    {{- end }}
-  </div>
+  {{- partial "home/artwork.html" . }}
+  {{- with $site.description }}<p class="hero__eyebrow">{{ . }}</p>{{ end }}
+  <h1 class="hero__title" id="welcome-title">{{ $hero.title | default ($site.title | default site.Title) }}</h1>
+  {{- with $hero.text }}<div class="hero__text">{{ . | markdownify }}</div>{{ end }}
+  <a class="hero__read" href="#recent-title">开始阅读{{ partial "icon.html" (dict "name" "arrow-right" "size" 16) }}</a>
 </section>
 
 {{- partial "widgets/slot.html" (dict "page" . "slot" "home-after-intro") }}

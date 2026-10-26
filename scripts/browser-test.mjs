@@ -25,6 +25,8 @@ try {
   f.saveSite();
   f.widgets[1].enabled = true; f.widgets[1].slot = "home-after-intro"; f.saveWidgets();
   put(f.root, "content/posts/a/index.md", document({ title: "中文回忆", date: "2020-01-01T00:00:00Z", lastmod: "2024-01-01T00:00:00Z" }, "雨后的书店。\n\n![雨后街道](/media/rainy-street.webp)"));
+  put(f.root, "content/posts/wide/index.md", document({ title: "宽图", date: "2020-01-03T00:00:00Z", kind: "photo" }, "一张很宽的图。\n\n![宽图](wide.png)\n\n![甲](wide.png) ![乙](wide.png)"));
+  put(f.root, "content/posts/wide/wide.png", pngSized(2400, 600));
   const built = build(f.root); assert.equal(built.status, 0, built.stderr);
   let indexFails = false;
   server = await staticServer(join(f.root, "public"), (_req, response, path) => {
@@ -97,13 +99,14 @@ try {
     await ev("document.querySelector('[data-theme-toggle]').click()");
     ok(`${width}px：深浅色按钮有反馈`, await ev(`document.documentElement.dataset.theme !== ${JSON.stringify(previous)}`));
     await wait(550);
-    ok(`${width}px：欢迎区按宽度分栏或堆叠`, await ev(`(() => {
-      const a = document.querySelector('.hero__heading').getBoundingClientRect(), b = document.querySelector('.hero__copy').getBoundingClientRect();
-      return ${width} > 704 ? a.right <= b.left && Math.abs(a.top - b.top) < 1 : a.bottom <= b.top;
+    ok(`${width}px：首屏单栏，线描、标题、介绍、开始阅读自上而下且不超出正文栏`, await ev(`(() => {
+      const main = document.querySelector('main').getBoundingClientRect();
+      const parts = ['.hero__artwork', '.hero__title', '.hero__text', '.hero__read'].map((s) => document.querySelector(s).getBoundingClientRect());
+      return parts.every((r, i) => r.left >= main.left - 1 && r.right <= main.right + 1 && (i === 0 || r.top >= parts[i - 1].bottom - 1));
     })()`));
-    ok(`${width}px：页脚个人表达与联系入口按宽度分组`, await ev(`(() => {
-      const a = document.querySelector('.site-footer__identity').getBoundingClientRect(), b = document.querySelector('.site-footer__connect').getBoundingClientRect();
-      return ${width} > 576 ? a.right <= b.left : a.bottom <= b.top;
+    ok(`${width}px：页脚一句话在上，联系入口与回到顶部同组，版权在最下`, await ev(`(() => {
+      const q = document.querySelector('.site-footer__quote').getBoundingClientRect(), row = document.querySelector('.site-footer__row').getBoundingClientRect(), legal = document.querySelector('.site-footer__legal').getBoundingClientRect();
+      return q.bottom <= row.top + 1 && row.bottom <= legal.top + 1 && !!document.querySelector('.site-footer__row .back-to-top');
     })()`));
     ok(`${width}px：阅读与页脚操作区至少 44px`, await ev("[...document.querySelectorAll('.hero__read, .site-footer a')].every(a => { const r = a.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; })"));
     ok(`${width}px：另一主题下长欢迎标题和页脚也不溢出`, await ev("document.documentElement.scrollWidth <= innerWidth"));
@@ -123,20 +126,20 @@ try {
     ok(`${width}px：实际触控开始阅读并交还阅读焦点`, true);
   }
   for (const accent of ["orange", "blue", "teal", "rose", "violet"]) for (const theme of ["light", "dark"]) {
+    // Measure the settled colours: links cross-fade for --motion-fast after a theme change.
+    await ev(`document.documentElement.dataset.accent = ${JSON.stringify(accent)}; document.documentElement.dataset.theme = ${JSON.stringify(theme)};`);
+    await wait(400);
     const contrast = await ev(`(() => {
-      document.documentElement.dataset.accent = ${JSON.stringify(accent)};
-      document.documentElement.dataset.theme = ${JSON.stringify(theme)};
       const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
       const luminance = (color) => {
         ctx.fillStyle = color; ctx.fillRect(0, 0, 1, 1);
         const rgb = [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3).map(value => { const s = value / 255; return s <= .04045 ? s / 12.92 : ((s + .055) / 1.055) ** 2.4; });
         return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
       };
-      const a = getComputedStyle(document.querySelector('.hero__read'));
-      const x = luminance(a.color), y = luminance(a.backgroundColor);
+      const x = luminance(getComputedStyle(document.querySelector('.hero__read')).color), y = luminance(getComputedStyle(document.body).backgroundColor);
       return (Math.max(x, y) + .05) / (Math.min(x, y) + .05);
     })()`);
-    ok(`${accent}/${theme}：阅读按钮切换主题时对比度 ≥ 4.5:1`, contrast >= 4.5);
+    ok(`${accent}/${theme}：开始阅读链接切换主题时对比度 ≥ 4.5:1`, contrast >= 4.5);
     await wait(180);
   }
   await ev("document.documentElement.dataset.accent = 'orange'; document.documentElement.dataset.theme = 'light'");
@@ -167,6 +170,15 @@ try {
   await until("document.querySelector('[data-search-results] li')");
   ok("网络恢复后重试成功，不缓存失败", true);
 
+  for (const width of [1280, 390]) {
+    await viewport(width); await go("/posts/wide/");
+    ok(`${width}px：图文文章的单图和同段多图都不超出正文栏`, await ev(`(() => {
+      const prose = document.querySelector('.prose').getBoundingClientRect();
+      const boxes = [...document.querySelectorAll('.prose .media, .prose img')].map((n) => n.getBoundingClientRect());
+      return boxes.length >= 4 && boxes.every((r) => r.left >= prose.left - 1 && r.right <= prose.right + 1) && document.documentElement.scrollWidth <= innerWidth;
+    })()`));
+    ok(`${width}px：文章页只有页脚一个回到顶部`, await ev("document.querySelectorAll('.back-to-top').length === 1 && !!document.querySelector('.site-footer .back-to-top')"));
+  }
   await viewport(1280); await go("/posts/a/");
   await ev("document.querySelector('.media__zoom').click()");
   await until("document.querySelector('dialog.lightbox')?.open");

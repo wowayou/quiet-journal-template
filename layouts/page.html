@@ -22,7 +22,6 @@
 
   {{- if $isPost }}
   <footer class="entry__footer">
-    <a class="back-to-top" href="#top">{{ partial "icon.html" (dict "name" "arrow-up" "size" 16) }}回到顶部</a>
     <nav class="entry__nav" aria-label="上一篇与下一篇">
       {{- with .NextInSection }}<a href="{{ .RelPermalink }}" rel="prev"><span class="entry__nav-label">← 较新</span><span class="entry__nav-title">{{ partial "title.html" . }}</span></a>{{ else }}<span></span>{{ end }}
       {{- with .PrevInSection }}<a class="entry__nav-next" href="{{ .RelPermalink }}" rel="next"><span class="entry__nav-label">较早 →</span><span class="entry__nav-title">{{ partial "title.html" . }}</span></a>{{ end }}

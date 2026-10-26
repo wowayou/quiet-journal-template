@@ -43,6 +43,8 @@ test("首页与页脚：保留配置文字、Markdown 和社交顺序，纯文�
   assert.equal(artwork.length, 1);
   assert.equal(artwork[0].attrs["aria-hidden"], "true");
   assert.equal(artwork[0].attrs.focusable, "false");
+  // Social and RSS live only in the footer; the welcome area does not repeat them.
+  assert.ok(!tags(welcome).some((tag) => "data-social" in tag.attrs || tag.attrs.href === "/index.xml"));
   const readLink = byClass(welcome, "hero__read")[0];
   assert.equal(readLink.name, "a"); assert.equal(readLink.attrs.href, "#recent-title");
   assert.equal(readLink.attrs.target, undefined);
@@ -50,9 +52,12 @@ test("首页与页脚：保留配置文字、Markdown 和社交顺序，纯文�
   assert.equal(recent.name, "h2"); assert.equal(recent.attrs.tabindex, "-1");
   for (const path of ["index.html", "posts/a/index.html", "about/index.html", "404.html"]) {
     const bottom = footer(read(f.root, `public/${path}`));
-    for (const value of [f.site.title, f.site.author, f.site.footer.quote, f.site.footer.content_license]) {
+    for (const value of [f.site.author, f.site.footer.quote, f.site.footer.content_license]) {
       assert.ok(plain(bottom).includes(value.replace(/\s+/g, " ")), `${path}: preserves text`);
     }
+    // The site name lives in the header; the footer no longer repeats it.
+    assert.ok(plain(read(f.root, `public/${path}`).match(/<header\b[\s\S]*?<\/header>/)[0]).includes(f.site.title), `${path}: header keeps site name`);
+    assert.ok(!plain(bottom).includes(f.site.title), `${path}: footer does not repeat site name`);
     const socials = tags(bottom).filter((tag) => tag.name === "a" && "data-social" in tag.attrs);
     assert.deepEqual(socials.map((tag) => tag.attrs.href), f.site.social.map((item) => item.url));
     assert.ok(socials[0].attrs.rel.split(" ").includes("me"));
@@ -74,7 +79,6 @@ test("首页空配置与空文章：标题有兜底，阅读锚点仍有效，�
     assert.equal(plain(home.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/)[0]), f.site.title);
     assert.equal(byClass(home, "hero__eyebrow").length, 0);
     assert.equal(byClass(home, "hero__text").length, 0);
-    assert.equal(byClass(home, "hero__social").length, 0);
     assert.equal(byClass(home, "site-footer__connect").length, 0);
     assert.equal(byClass(footer(home), "back-to-top").length, 1);
     assert.match(home, /还没有文章/);
@@ -147,5 +151,5 @@ test("欢迎区不改文章地址、分页与订阅；子路径和草稿隔离�
   for (const file of files.filter((file) => /\.(html|xml|json)$/.test(file))) {
     assert.doesNotMatch(read(f.root, `public/${file}`), /HIDDEN_HOME_MARKER|FUTURE_HOME_MARKER/);
   }
-  assert.doesNotMatch(read(f.root, "public/index.xml"), /hero__artwork|site-footer__identity/);
+  assert.doesNotMatch(read(f.root, "public/index.xml"), /hero__artwork|site-footer__/);
 }));
