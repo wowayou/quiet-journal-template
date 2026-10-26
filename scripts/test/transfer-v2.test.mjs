@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, readdirSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { exportContent, readSnapshot, inspectContent, importContent, inventoryContent } from '../content-transfer.mjs';
 import { packSnapshot, unpackSnapshot } from '../content-zip.mjs';
@@ -94,6 +94,44 @@ test('任务 ID 幂等、同一时刻一任务、报告及 ZIP 下载无需另�
   const cookie=ticketResponse.headers.get('set-cookie').split(';')[0];
   const native=await fetch(app.origin+ticket.url,{headers:{Cookie:cookie}});assert.equal(native.status,200);assert.deepEqual(Buffer.from(await native.arrayBuffer()),zip);
   assert.equal((await fetch(app.origin+ticket.url,{headers:{Cookie:cookie}})).status,403);
+}));
+test('摘要任务保留本次范围，状态和导出清单不会借用上一份设置',()=>using(async({source,folder,app,auth,submit,wait})=>{
+ mkdirSync(join(source,'data'));writeFileSync(join(source,'data/site.yaml'),'title: Synthetic settings');
+ const first=await submit({action:'inventory',includeSettings:true});assert.equal((await wait(first.body.id)).result.counts.settings,1);
+ const next=await submit({action:'inventory',includeSettings:false});assert.equal(next.status,202);assert.equal(next.body.includeSettings,false);
+ const listed=await(await fetch(`${app.origin}/api/status`,{headers:auth})).json();assert.equal(listed.tasks.find(task=>task.id===next.body.id).includeSettings,false);
+ const inventory=await wait(next.body.id);assert.equal(inventory.includeSettings,false);assert.equal(inventory.result.includeSettings,false);assert.equal(inventory.result.counts.settings,0);
+ const exported=await submit({action:'export',includeSettings:false,includePrivate:true,format:'directory'}),finished=await wait(exported.body.id);
+ assert.equal(finished.status,'completed',finished.error);assert.equal(finished.includeSettings,false);
+ assert.ok(!readSnapshot(finished.result.output).manifest.files.some(file=>file.path.startsWith('data/')));
+}));
+test('目录导出可从有界列表重新检查，兼容旧包且不跟随嵌套符号链接',()=>using(async({root,source,folder,app,auth,submit,wait})=>{
+ const exported=await submit({action:'export',includePrivate:true,format:'directory'}),finished=await wait(exported.body.id);assert.equal(finished.status,'completed',finished.error);
+ const name=relative(folder,finished.result.output).replaceAll('\\','/'),legacy=join(folder,'legacy');exportContent({source,output:legacy,includePrivate:true});
+ const list=async()=>(await(await fetch(`${app.origin}/api/status`,{headers:auth})).json()).snapshots;
+ assert.deepEqual((await list()).sort(),[name,'legacy'].sort());
+ const checked=await submit({action:'inspect',snapshot:name}),review=await wait(checked.body.id);assert.equal(review.status,'completed',review.error);assert.equal(review.result.snapshot,finished.result.output);
+ for(const invalid of ['legacy/files','legacy/content/extra','../content','legacy/content/..','legacy\\content']) assert.equal((await submit({action:'inspect',snapshot:invalid})).status,400,invalid);
+ const deep=join(folder,'ignored/deeper/content');mkdirSync(deep,{recursive:true});writeFileSync(join(deep,'manifest.json'),'{}');assert.ok(!(await list()).some(path=>path.startsWith('ignored')));
+ if(process.platform!=='win32') {
+  const link=join(folder,'linked');mkdirSync(link);symlinkSync(legacy,join(link,'content'));symlinkSync(legacy,join(folder,'alias'));
+  const fake=join(folder,'fake/content');mkdirSync(fake,{recursive:true});symlinkSync(join(legacy,'manifest.json'),join(fake,'manifest.json'));
+  assert.ok(!(await list()).some(path=>/^(linked|alias|fake)(\/|$)/.test(path)));
+  for(const snapshot of ['linked/content','alias/content']) {const sent=await submit({action:'inspect',snapshot}),failed=await wait(sent.body.id);assert.equal(failed.status,'failed');assert.match(failed.error,/符号链接/);}
+ }
+ assert.equal(readFileSync(join(source,'content/a.md'),'utf8').includes('Original'),true);
+}));
+test('不存在的目录保留失败任务和选择身份，重复请求不重做且不复活旧检查',()=>using(async({root,source,folder,app,auth,submit,wait})=>{
+ const snapshot=join(folder,'snapshot');exportContent({source,output:snapshot,includePrivate:true});
+ const checked=await submit({action:'inspect',snapshot});assert.equal((await wait(checked.body.id)).status,'completed');
+ const id=randomBytes(16).toString('hex'),missing=join(root,'missing'),request={id,action:'inspect',snapshot:missing};
+ const sent=await submit(request);assert.equal(sent.status,202);assert.equal(sent.body.snapshot,missing);
+ const failed=await wait(id);assert.equal(failed.status,'failed');assert.equal(failed.snapshot,missing);assert.match(failed.error,/目录不存在/);
+ const before=await(await fetch(`${app.origin}/api/status`,{headers:auth})).json();assert.equal(before.tasks.at(-1).id,id);assert.equal(before.tasks.at(-1).status,'failed');assert.equal(before.active,undefined);
+ const duplicate=await submit(request);assert.equal(duplicate.status,200);assert.equal(duplicate.body.status,'failed');
+ assert.equal((await submit({...request,snapshot})).status,409);
+ const after=await(await fetch(`${app.origin}/api/status`,{headers:auth})).json();assert.equal(after.tasks.length,before.tasks.length);assert.deepEqual(readdirSync(folder),['snapshot']);
+ const retry=await submit({action:'inspect',snapshot});assert.equal((await wait(retry.body.id)).status,'completed');
 }));
 test('任务超时限制是实际停止条件，较短本地限时可取消且不触碰原内容',()=>using(async({source,submit,wait})=>{
  const before=readFileSync(join(source,'content/a.md'));

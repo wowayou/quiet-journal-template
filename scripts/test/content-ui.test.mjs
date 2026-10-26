@@ -90,7 +90,7 @@ test("本地向导：参数白名单、路径越界、符号链接、损坏包�
   exp();
   if (process.platform !== "win32") {
     symlinkSync(snapshot, join(folder, "alias"));
-    assert.equal((await call({ action: "inspect", snapshot: "alias" })).status, 400);
+    assert.equal((await complete({ action: "inspect", snapshot: "alias" })).status, 400);
   }
   const checked = await complete({ action: "inspect", snapshot });
   assert.equal(checked.status, 200);

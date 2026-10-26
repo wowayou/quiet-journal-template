@@ -34,8 +34,20 @@ test("CMS 入口：先禁止自动初始化，保持固定 SRI、自定义挂载
   assert.ok(html.indexOf('./manual-init.js') < html.indexOf('https://unpkg.com/@sveltia/cms@0.235.1/'));
   assert.ok(html.indexOf('./editor-components.js') < html.indexOf('./editor.js'));
   assert.match(html, /id="nc-root"/);
+  assert.match(html, /href="\.\/publishing\.html" target="_blank" rel="noopener noreferrer" title="保存到仓库不等于网站上线"/);
   assert.match(html, /integrity="sha384-0buNFRS4cnwrZfClZMgBYxOTaefGGJltRCRnsKTgLl\+q0sOGWcd8sgJpgwr1oKUl"/);
   assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>[\s\S]+?<\/script>/);
   const flags = readFileSync(new URL("../../static/admin/manual-init.js", import.meta.url), "utf8");
   assert.match(flags, /window.CMS_MANUAL_INIT = true/);
+});
+
+test("发布说明：纯静态、明确保存与上线边界，不读取令牌或假报实际发布状态", () => {
+  const html = readFileSync(new URL("../../static/admin/publishing.html", import.meta.url), "utf8");
+  assert.match(html, /保存到仓库不等于网站已上线/);
+  assert.match(html, /不会因为部署失败而消失/);
+  assert.match(html, /未保存的输入/);
+  assert.match(html, /这里不读取云端状态/);
+  assert.match(html, /publish:fallback -- --check/);
+  assert.match(html, /Cloudflare Deployments/);
+  assert.doesNotMatch(html, /<script|<iframe|<form|localStorage|Authorization|https:\/\/api\./i);
 });

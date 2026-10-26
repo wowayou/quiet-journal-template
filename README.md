@@ -2,7 +2,7 @@
 
 一个安静、易于修改的个人生活博客模板，基于 Hugo。博客本体没有数据库，不需要服务器或统计脚本，默认只加载同源资源。可选免登录评论由隔离的面板和独立服务提供，读者主动加载后才连接。
 
-> 本地交付：**2026-10-22 配置分层、内容工具 V2、图标与可选邮件表单已验收并提交**；尚未推送或部署，线上基线仍为 2026-10-19 的后续成功构建。见 [CHANGELOG.md](CHANGELOG.md)；已有站点更新前请读 [UPDATING.md](docs/UPDATING.md)。评论、邮件真实服务及 Safari/iPhone 新交互仍独立验收。
+> 模板工作区：**2026-10-25 配置分层、内容工具状态修复、图标兼容与发布兜底已完成本地验收，尚未推送到公开模板仓库**。实例有独立的发布记录；请核对其对应 `main` 提交的 Workers Builds 检查和实际网站，不能据模板工作区状态判断实例是否上线。见 [CHANGELOG.md](CHANGELOG.md)；已有站点更新前请读 [UPDATING.md](docs/UPDATING.md)。评论、邮件真实服务及 Safari/iPhone 新交互仍独立验收。
 
 ## 用这个模板建站
 
@@ -10,6 +10,8 @@
 2. 改 4 处配置：`wrangler.jsonc` 的 `name`、`config/_default/hugo.toml` 的 `baseURL`、`data/editor.yaml` 的 `repo`、`data/site.yaml` 的网站名和社交链接。
 3. 示例文章在 `content/posts/`：删掉，或把 `draft` 改成 `true` 留着参考。
 4. 按 [docs/DEPLOY.md](docs/DEPLOY.md) 接入 Cloudflare，按 [docs/EDITING.md](docs/EDITING.md) 创建写作用的访问令牌。
+
+**后台保存不等于网站上线。** 已提交到 GitHub 的内容不会因部署失败消失；本站默认使用 Cloudflare Workers Builds，不用 GitHub Actions。后台“发布说明”与 [本地发布兜底](docs/DEPLOY.md#云构建不可用时手动本地发布兜底) 提供检查和手动回退步骤；`npm run publish:fallback -- --check` 默认只检查，绝不自动部署或转付费。
 
 ## 本地运行
 

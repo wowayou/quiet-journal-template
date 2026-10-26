@@ -79,6 +79,7 @@ try {
     await browser.send("Emulation.setDeviceMetricsOverride", { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
     await browser.send("Emulation.setTouchEmulationEnabled", { enabled: width < 600 }); await wait(250);
     ok(`${width}px：独立工具栏不溢出，也不覆盖 CMS 挂载区`, await ev(`(()=>{const bar=document.querySelector('#qj-admin-bar').getBoundingClientRect();const root=document.querySelector('#nc-root').getBoundingClientRect();return document.documentElement.scrollWidth<=innerWidth && root.top>=bar.bottom-1 && bar.bottom<=70;})()`));
+    ok(`${width}px：发布说明入口可点、另开标签且不假报成功`, await ev(`(()=>{const link=document.querySelector('a[href="./publishing.html"]');const r=link.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===link&&link.target==='_blank'&&link.title.includes('不等于网站上线');})()`));
     if (process.env.QJ_SCREENSHOTS) {
       mkdirSync(process.env.QJ_SCREENSHOTS, { recursive: true });
       const shot = await browser.send("Page.captureScreenshot", { format: "png" });
@@ -204,6 +205,15 @@ try {
   ok("CMS 实际保存内容可重新构建，完整产物检查通过", checkSite(join(f.root, "public")).length === 0);
   await browser.send("Page.navigate", { url: `${server.url}/admin/tools.html` }); await wait(250);
   ok("导入导出说明在 320px 无横向溢出，不要求登录或新增密钥", await ev(`document.documentElement.scrollWidth<=innerWidth && document.querySelectorAll('script').length===0 && document.body.innerText.includes('隔离目录')`));
+  for (const width of [320, 1280]) {
+    await browser.send("Emulation.setDeviceMetricsOverride", { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
+    await browser.send("Page.navigate", { url: `${server.url}/admin/publishing.html` }); await wait(250);
+    ok(`${width}px：发布兜底说明无脚本、无横向溢出，明确不读取实际状态`, await ev(`document.documentElement.scrollWidth<=innerWidth && document.querySelectorAll('script,iframe,form').length===0 && document.body.innerText.includes('保存到仓库不等于网站已上线') && document.body.innerText.includes('这里不读取云端状态') && document.body.innerText.includes('不会发布')`));
+    if (process.env.QJ_SCREENSHOTS) {
+      const shot = await browser.send("Page.captureScreenshot", { format: "png" });
+      writeFileSync(join(process.env.QJ_SCREENSHOTS, `cms-publishing-${width}.png`), Buffer.from(shot.data, "base64"));
+    }
+  }
   blockBundle = true;
   await browser.send("Page.navigate", { url: `${server.url}/admin/` });
   await until(`document.querySelector('#qj-startup-status')?.textContent.includes('未能加载')`);

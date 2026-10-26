@@ -3,7 +3,7 @@ const KEY = 'quiet-journal:content-session';
 let token = location.hash.slice(1);
 try { if (token) sessionStorage.setItem(KEY, token); else token = sessionStorage.getItem(KEY) || ''; } catch { /* Current page still works; reload cannot recover session. */ }
 history.replaceState(null, '', '/');
-let connected = false, active, review, completed, inventory, mode = 'export', page = 0, lastFocus, polling = false, shownTaskId;
+let connected = false, active, review, completed, inventory, mode = 'export', page = 0, lastFocus, polling = false, shownTaskId, refreshVersion = 0;
 let observing = !document.hidden;
 const id = () => [...crypto.getRandomValues(new Uint8Array(16))].map(n => n.toString(16).padStart(2, '0')).join('');
 const size = bytes => bytes < 1024 ? `${bytes} 字节` : bytes < 1024 ** 2 ? `${(bytes/1024).toFixed(1)} KiB` : `${(bytes/1024**2).toFixed(1)} MiB`;
@@ -14,7 +14,7 @@ async function api(path, data, credentials = 'omit') {
 function controls() {
   for (const name of ['export','settings','format','snapshot','zip-file','directory-path','select-directory','inspect']) $(name).disabled = !connected || !!active;
   for (const name of ['refresh', 'refresh-task']) $(name).disabled = !/^[a-f0-9]{64}$/.test(token);
-  $('export').disabled ||= !$('consent').checked || !inventory;
+  $('export').disabled ||= !$('consent').checked || !inventory || inventory.includeSettings !== $('settings').checked;
   $('import').disabled = !connected || !!active || !review || !$('import-consent').checked;
   $('cancel').hidden = !active;
   for (const name of ['export-mode','import-mode']) $(name).disabled = !!active;
@@ -50,35 +50,56 @@ function showReview(task) {
   $('comparison').textContent=`可新增 ${counts.add} · 相同 ${counts.same} · 内容不同 ${counts.conflict} · 本站独有 ${task.result.targetOnly}（不会删除）`;
   page=0;renderFiles();controls();
 }
+function showInventory(task) {
+  $('settings').checked = task.includeSettings;
+  inventory = task.status === 'completed' ? task.result : undefined;
+  if (inventory) statbox($('inventory'), inventory.counts, inventory.bytes);
+  else $('inventory').textContent = task.status === 'running' ? '正在检查本次选择的内容范围…' : '内容摘要未完成，请重新检查后再导出。';
+}
 function notice(text) { $('result-section').hidden=false;$('result').textContent=text; }
 function apply(task) {
-  if (task.status==='running') {active=task;completed=undefined;$('copy').hidden=true;$('download').hidden=true;$('output').textContent='';notice(`${{checking:'检查中',copying:'恢复文件中',packing:'打包中',unpacking:'检查解包中',receiving:'接收本机文件中',cancelling:'正在取消'}[task.stage]||'处理中'}${task.total?` · ${task.current||0}/${task.total}`:''}${task.path?` · ${task.path}`:''}`);controls();return;}
+  refreshVersion++;
+  if (task.action === 'inventory') showInventory(task);
+  if (task.status==='running') {active=task;completed=undefined;$('copy').hidden=true;$('download').hidden=true;$('output').textContent=task.snapshot?`检查的内容包：${task.snapshot}`:'';notice(`${{checking:'检查中',copying:'恢复文件中',packing:'打包中',unpacking:'检查解包中',receiving:'接收本机文件中',cancelling:'正在取消'}[task.stage]||'处理中'}${task.total?` · ${task.current||0}/${task.total}`:''}${task.path?` · ${task.path}`:''}`);controls();return;}
   active=undefined;shownTaskId=task.id;
   if(task.status!=='completed'){
     completed=undefined;
     if(['inspect','upload'].includes(task.action)||(task.action==='import'&&/改变|变化/.test(task.error||''))){review=undefined;$('review').hidden=true;}
-    $('copy').hidden=true;$('download').hidden=true;$('output').textContent='';
+    $('copy').hidden=true;$('download').hidden=true;$('output').textContent=task.snapshot?`检查的内容包：${task.snapshot}`:'';
     notice(`${task.status==='cancelled'?'已取消':'未完成'}：${task.error||'请检查任务结果。'} 不会自动重试。`);
     $('recovery').textContent='当前博客没有改变；若进程意外结束，请核对临时目录中的清单/报告。';$('result-section').focus();controls();return;
   }
-  if(task.action==='inventory'){inventory=task.result;statbox($('inventory'),inventory.counts,inventory.bytes);if(!completed)$('result-section').hidden=true;}
-  else if(['inspect','upload'].includes(task.action)){completed=undefined;$('copy').hidden=true;$('download').hidden=true;$('output').textContent='';switchMode('import');showReview(task);notice(`完整性检查通过：${task.result.files} 个文件，${size(task.result.bytes)}。请查看比较结果后确认。`);$('review').focus();}
+  if(task.action==='inventory'){if(!completed)$('result-section').hidden=true;}
+  else if(['inspect','upload'].includes(task.action)){completed=undefined;$('copy').hidden=true;$('download').hidden=true;$('output').textContent=`检查的内容包：${task.result.snapshot}`;switchMode('import');showReview(task);notice(`完整性检查通过：${task.result.files} 个文件，${size(task.result.bytes)}。请查看比较结果后确认。`);$('review').focus();}
   else {completed=task;notice(`${task.action==='export'?'导出完成':'已恢复到新的隔离目录，当前博客没有改变'}：${task.result.files} 个文件，${size(task.result.bytes)}。`);$('output').textContent=`保存位置：${task.result.output}`;$('copy').hidden=false;$('download').hidden=task.result.format!=='zip';$('recovery').textContent=task.action==='export'?'将文件保存在私人位置。这不是完整 Git 或评论数据库备份。':'比较结果继续保留。请人工合并、运行构建检查，再决定发布。';$('result-section').focus();}
   controls();
 }
 async function refresh() {
-  const data=await api('/api/status');connected=true;$('source').textContent=data.source;$('folder').textContent=data.folder;$('session').textContent='已连接本机 · 所有内容操作留在这台电脑';
-  const selected=$('snapshot').value;$('snapshot').replaceChildren(new Option('请选择目录快照',''),...data.snapshots.map(name=>new Option(name,name)));$('snapshot').value=selected;
-  const pending=active, history=[...data.tasks].reverse();
-  // A rejected request may never have reserved a task. Release controls without reviving old success.
-  if(pending&&!data.active&&!data.tasks.some(task=>task.id===pending.id)){active=undefined;controls();return data;}
-  const task=data.active?data.tasks.find(task=>task.id===data.active):pending?data.tasks.find(task=>task.id===pending.id):history.find(task=>task.action!=='inventory')||history[0];
+  const version = ++refreshVersion, pending = active;
+  const data = await api('/api/status');
+  if (version !== refreshVersion) return data;
+  const history = [...data.tasks].reverse();
+  // A response before POST is accepted is not proof that the operation was rejected.
+  if(pending&&!data.active&&!data.tasks.some(task=>task.id===pending.id)){
+    if (!pending.submitting) active=undefined;
+    controls();return data;
+  }
+  const latest=history[0];
+  const task=data.active?data.tasks.find(task=>task.id===data.active):pending?data.tasks.find(task=>task.id===pending.id):latest?.action==='inventory'&&latest.status!=='completed'?latest:history.find(task=>task.action!=='inventory')||latest;
   const checked=history.find(task=>['inspect','upload'].includes(task.action));
   const staleImport=task?.action==='import'&&task.status!=='completed'&&/改变|变化/.test(task.error||'');
-  if(!review&&checked?.status==='completed'&&!staleImport){switchMode('import');showReview(await api(`/api/task?id=${checked.id}`));}
-  const inv=history.find(task=>task.status==='completed'&&task.action==='inventory');
-  if(inv&&!inventory){inventory=inv.result;$('settings').checked=inventory.includeSettings!==false;statbox($('inventory'),inventory.counts,inventory.bytes);}
-  if(task&&(task.status==='running'||pending||task.id!==shownTaskId))apply(task.status==='completed'?await api(`/api/task?id=${task.id}`):task);
+  const needsReview=!review&&checked?.status==='completed'&&!staleImport;
+  const needsTask=task&&(task.status==='running'||pending||task.id!==shownTaskId);
+  const resolvedTask=needsTask&&task.status==='completed'?await api(`/api/task?id=${task.id}`):task;
+  const resolvedReview=needsReview?(needsTask&&checked.id===resolvedTask?.id&&resolvedTask.status==='completed'?resolvedTask:await api(`/api/task?id=${checked.id}`)):undefined;
+  if (version !== refreshVersion) return data;
+  connected=true;$('source').textContent=data.source;$('folder').textContent=data.folder;$('session').textContent='已连接本机 · 所有内容操作留在这台电脑';
+  const selected=$('snapshot').value;$('snapshot').replaceChildren(new Option('请选择目录快照',''),...data.snapshots.map(name=>new Option(name,name)));$('snapshot').value=selected;
+  // Only the latest inventory, including running/failed tasks, owns the export scope.
+  const inv=history.find(task=>task.action==='inventory');
+  if(inv)showInventory(inv);
+  if(resolvedReview){switchMode('import');showReview(resolvedReview);}
+  if(needsTask)apply(resolvedTask);
   controls();return data;
 }
 async function poll() {
@@ -90,21 +111,24 @@ async function poll() {
   } finally { polling=false; }
 }
 async function run(action, extra={}) {
+  const operation=id();
   try {
-    if(active)return;if(action==='inspect'){review=undefined;$('review').hidden=true;}active={id:id(),action,status:'running',stage:'checking'};apply(active);
-    const task=await api('/api/action',{id:active.id,action,...extra});apply(task);await poll();
-  }catch(e){notice(e.message);try{await refresh();if(active)await poll();}catch(recovery){$('recovery').textContent=`无法核对任务：${recovery.message} 请恢复连接后刷新，勿重复写入。`;} controls();}
+    if(active)return;if(action==='inspect'){review=undefined;$('review').hidden=true;}
+    active={id:operation,action,...extra,...(action==='inventory'?{includeSettings:extra.includeSettings??$('settings').checked}:{}),status:'running',stage:'checking',submitting:true};apply(active);
+    const task=await api('/api/action',{id:operation,action,...extra,...(action==='inventory'?{includeSettings:active.includeSettings}:{})});
+    if(active?.id===operation)apply(task);await poll();
+  }catch(e){if(active?.id!==operation)return;active.submitting=false;notice(e.message);try{await refresh();if(active)await poll();}catch(recovery){$('recovery').textContent=`无法核对任务：${recovery.message} 请恢复连接后刷新，勿重复写入。`;} controls();}
 }
 async function upload(file) {
   if(!file||active)return;
   if(!file.name.toLowerCase().endsWith('.zip')){notice('请选择 ZIP 内容包；目录快照可使用下面的目录入口。');return;}
-  const operation=id();active={id:operation,action:'upload',status:'running',stage:'receiving'};apply(active);review=undefined;$('review').hidden=true;
-  try {const response=await fetch(`/api/upload?id=${operation}`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/zip'},body:file,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(120000)});const task=await response.json();if(!response.ok)throw new Error(task.error);apply(task);await poll();}catch(e){notice(`接收未完成：${e.message} 请刷新核对原任务。`);try{await refresh();if(active)await poll();}catch(recovery){$('recovery').textContent=`无法核对任务：${recovery.message} 请恢复连接后刷新，勿重复写入。`;} controls();}
+  const operation=id();active={id:operation,action:'upload',status:'running',stage:'receiving',submitting:true};apply(active);review=undefined;$('review').hidden=true;
+  try {const response=await fetch(`/api/upload?id=${operation}`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/zip'},body:file,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(120000)});const task=await response.json();if(!response.ok)throw new Error(task.error);if(active?.id===operation)apply(task);await poll();}catch(e){if(active?.id!==operation)return;active.submitting=false;notice(`接收未完成：${e.message} 请刷新核对原任务。`);try{await refresh();if(active)await poll();}catch(recovery){$('recovery').textContent=`无法核对任务：${recovery.message} 请恢复连接后刷新，勿重复写入。`;} controls();}
 }
 async function download(path,name) {try{const response=await fetch(path,{headers:{Authorization:`Bearer ${token}`},credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000)});if(!response.ok)throw new Error((await response.json()).error);const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}catch(e){notice(e.message);}}
 $('export-mode').onclick=()=>switchMode('export');$('import-mode').onclick=()=>switchMode('import');$('consent').onchange=controls;$('import-consent').onchange=controls;
 $('settings').onchange=()=>{inventory=undefined;run('inventory',{includeSettings:$('settings').checked});};
-$('export').onclick=()=>run('export',{includePrivate:$('consent').checked,includeSettings:$('settings').checked,format:$('format').value});
+$('export').onclick=()=>!$('export').disabled&&run('export',{includePrivate:$('consent').checked,includeSettings:inventory.includeSettings,format:$('format').value});
 $('snapshot').onchange=()=>{if($('snapshot').value)run('inspect',{snapshot:$('snapshot').value});};
 $('select-directory').onclick=()=>run('inspect',{snapshot:$('directory-path').value});
 $('inspect').onclick=()=>review&&run('inspect',{snapshot:review.result.snapshot});
@@ -120,7 +144,7 @@ $('previous').onclick=()=>{page--;renderFiles();};$('next').onclick=()=>{page++;
 $('report').onclick=()=>review&&download(`/api/report?id=${review.id}`,'journal-comparison.json');
 $('download').onclick=async()=>{if(!completed)return;try{const ticket=await api(`/api/download-ticket?id=${completed.id}`,{},'same-origin');const a=document.createElement('a');a.href=ticket.url;a.download='journal-content.zip';a.click();$('recovery').textContent='已交给浏览器下载，请查看浏览器下载列表；不会将大包载入页面内存。';}catch(e){notice(e.message);}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(completed.result.output);$('recovery').textContent='保存路径已复制。';}catch{$('recovery').textContent='无法使用剪贴板，请选中上方路径复制。';}};
-$('cancel').onclick=()=>active&&api('/api/action',{action:'cancel',id:active.id}).then(task=>{apply(task);poll();}).catch(e=>notice(e.message));
+$('cancel').onclick=()=>{if(!active)return;const operation=active.id;return api('/api/action',{action:'cancel',id:operation}).then(task=>{if(active?.id===operation)apply(task);poll();}).catch(e=>{if(active?.id===operation)notice(e.message);});};
 $('diff-close').onclick=()=>$('diff').close();$('diff').addEventListener('close',()=>lastFocus?.focus());
 controls();
-if(/^[a-f0-9]{64}$/.test(token)){refresh().then(()=>active?poll():inventory?undefined:run('inventory')).catch(e=>{$('session').textContent=`无法连接：${e.message}`;});}else{$('session').textContent='请运行 npm run content:ui，再用终端显示的完整地址打开。';}
+if(/^[a-f0-9]{64}$/.test(token)){refresh().then(data=>active?poll():data.tasks.some(task=>task.action==='inventory')?undefined:run('inventory')).catch(e=>{$('session').textContent=`无法连接：${e.message}`;});}else{$('session').textContent='请运行 npm run content:ui，再用终端显示的完整地址打开。';}

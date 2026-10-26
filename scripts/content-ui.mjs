@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { Worker } from "node:worker_threads";
 import { randomBytes, timingSafeEqual, createHash } from "node:crypto";
 import { readFileSync, readdirSync, lstatSync, realpathSync, mkdirSync, createWriteStream, createReadStream, rmSync } from "node:fs";
-import { dirname, join, resolve, basename, isAbsolute } from "node:path";
+import { dirname, join, resolve, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pipeline } from "node:stream/promises";
 import { Transform } from "node:stream";
@@ -26,12 +26,13 @@ export async function startContentUI({ source = process.cwd(), folder = dirname(
   source = directory(source); folder = directory(folder);
   const secret = randomBytes(32).toString("hex"), tasks = new Map(), downloads = new Map();
   let origin, active;
-  const view = (task, details = false) => ({ id: task.id, action: task.action, status: task.status, stage: task.stage, current: task.current, total: task.total, path: task.path, result: details ? task.result : task.result && { files: task.result.files, bytes: task.result.bytes, counts: task.result.counts, output: task.result.output, format: task.result.format, includeSettings: task.result.includeSettings }, error: task.error });
+  const view = (task, details = false) => ({ id: task.id, action: task.action, status: task.status, snapshot: task.snapshot, includeSettings: task.includeSettings, stage: task.stage, current: task.current, total: task.total, path: task.path, result: details ? task.result : task.result && { files: task.result.files, bytes: task.result.bytes, counts: task.result.counts, output: task.result.output, format: task.result.format, includeSettings: task.result.includeSettings }, error: task.error });
   function snapshot(name) {
     if (typeof name !== "string" || !name) throw failure("请选择目录快照。");
-    if (isAbsolute(name)) return directory(name);
-    if (name.startsWith(".") || /[\/\\\u0000-\u001f]/.test(name) || basename(name) !== name) throw failure("请选择列表中的快照，或填写绝对目录路径。");
-    return directory(join(folder, name));
+    if (isAbsolute(name)) return { incoming: resolve(name) };
+    const parts = name.split("/"), entry = parts[0];
+    if (entry.startsWith(".") || /[\\\u0000-\u001f]/.test(name) || !entry || parts.length > 2 || (parts.length === 2 && parts[1] !== "content")) throw failure("请选择列表中的快照，或填写绝对目录路径。");
+    return { incoming: join(folder, ...parts), snapshotParent: parts.length === 2 ? join(folder, entry) : undefined };
   }
   function list() {
     const entries = readdirSync(folder, { withFileTypes: true });
@@ -39,8 +40,14 @@ export async function startContentUI({ source = process.cwd(), folder = dirname(
     const snapshots = [];
     for (const entry of entries) {
       if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
-      try { if (lstatSync(join(folder, entry.name, "manifest.json")).isFile()) snapshots.push(entry.name); }
-      catch (e) { if (!["ENOENT", "EACCES"].includes(e.code)) throw e; }
+      for (const path of [entry.name, `${entry.name}/content`]) {
+        try {
+          const parent = lstatSync(join(folder, entry.name)), root = lstatSync(join(folder, path));
+          if (!parent.isDirectory() || parent.isSymbolicLink() || !root.isDirectory() || root.isSymbolicLink()) continue;
+          const manifest = lstatSync(join(folder, path, "manifest.json"));
+          if (manifest.isFile() && !manifest.isSymbolicLink()) snapshots.push(path);
+        } catch (e) { if (!["ENOENT", "ENOTDIR", "EACCES"].includes(e.code)) throw e; }
+      }
     }
     return { source, folder, snapshots: snapshots.sort().reverse(), active: active?.id, tasks: [...tasks.values()].map(task => view(task)), limits: { fileBytes: LIMITS.fileBytes, totalBytes: LIMITS.totalBytes, zipBytes: ZIP_LIMITS.bytes } };
   }
@@ -52,7 +59,7 @@ export async function startContentUI({ source = process.cwd(), folder = dirname(
     if (tasks.size >= 40) throw failure("本次会话已完成 40 次操作，请结束后重新启动工具。");
     const root = newOutput(join(folder, `journal-${data.action}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}-${data.id.slice(0, 8)}`), source);
     mkdirSync(root, { mode: 0o700 });
-    const task = { id: data.id, startedAt: Date.now(), action: data.action, status: "running", stage: "checking", root, signature, cancel: new SharedArrayBuffer(4) };
+    const task = { id: data.id, startedAt: Date.now(), action: data.action, status: "running", stage: "checking", snapshot: data.action === "inspect" ? data.snapshot : undefined, includeSettings: ["inventory", "export"].includes(data.action) ? data.includeSettings !== false : undefined, root, signature, cancel: new SharedArrayBuffer(4) };
     tasks.set(task.id, task); active = task; return task;
   }
   function launch(task, options) {
@@ -167,8 +174,8 @@ export async function startContentUI({ source = process.cwd(), folder = dirname(
       }
       if (!["inventory", "export", "inspect", "import"].includes(data.action)) throw failure("不支持的操作。");
       if (tasks.has(data.id)) { const task = reserve(data); return send(200, view(task)); }
-      let incoming, review;
-      if (data.action === "inspect") incoming = snapshot(data.snapshot);
+      let incoming, review, snapshotParent;
+      if (data.action === "inspect") ({ incoming, snapshotParent } = snapshot(data.snapshot));
       if (data.action === "import") {
         const reviewed = tasks.get(data.reviewId);
         if (!reviewed || reviewed.status !== "completed" || !["inspect", "upload"].includes(reviewed.action)) throw failure("请先选择并检查内容包，再确认恢复。", 409);
@@ -177,7 +184,7 @@ export async function startContentUI({ source = process.cwd(), folder = dirname(
       if (["export", "import"].includes(data.action) && data.includePrivate !== true) throw failure("请明确确认其中包含私人内容。");
       if (data.format && !["zip", "directory"].includes(data.format)) throw failure("输出格式必须是 ZIP 或目录。");
       const task = reserve(data);
-      if (!task.worker && task.status === "running") launch(task, { incoming, review, includePrivate: data.includePrivate, includeSettings: data.includeSettings !== false, format: data.format || "zip" });
+      if (!task.worker && task.status === "running") launch(task, { incoming, snapshotParent, review, includePrivate: data.includePrivate, includeSettings: task.includeSettings, format: data.format || "zip" });
       return send(202, view(task));
     } catch (error) { if (!res.headersSent && !res.destroyed) send(error.status || 400, { error: error instanceof SyntaxError ? "操作参数不是有效 JSON。" : error.message }); }
   });

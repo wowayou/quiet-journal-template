@@ -1,11 +1,11 @@
 // One worker per active task, one at a time. Parent keeps responsive status and cancellation.
 import { parentPort, workerData } from "node:worker_threads";
-import { rmSync, writeFileSync } from "node:fs";
+import { rmSync, writeFileSync, lstatSync } from "node:fs";
 import { join } from "node:path";
 import { exportContent, inspectContent, importContent, inventoryContent } from "./content-transfer.mjs";
 import { unpackSnapshot, packSnapshot } from "./content-zip.mjs";
 
-const { action, source, incoming, root, review, includeSettings = true, includePrivate, format } = workerData;
+const { action, source, incoming, snapshotParent, root, review, includeSettings = true, includePrivate, format } = workerData;
 const cancelled = new Int32Array(workerData.cancel);
 let last = 0;
 const progress = (state) => {
@@ -24,6 +24,18 @@ try {
       result = { ...result, output: zip.output, archiveBytes: zip.bytes, format: "zip" };
     } else result.format = "directory";
   } else if (["inspect", "upload"].includes(action)) {
+    if (action === "inspect") {
+      for (const path of [snapshotParent, incoming].filter(Boolean)) {
+        try {
+          const stat = lstatSync(path);
+          if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("请选择普通本地目录，不能使用符号链接。");
+        } catch (error) {
+          if (["ENOENT", "ENOTDIR"].includes(error.code)) throw new Error(`目录不存在：${path}。请检查完整路径，或重新选择内容包。`);
+          if (error.code === "EACCES") throw new Error(`无法读取目录：${path}。请检查本机文件权限。`);
+          throw error;
+        }
+      }
+    }
     const snapshot = action === "upload" ? await unpackSnapshot(incoming, join(root, "snapshot"), progress) : incoming;
     result = { ...inspectContent({ source: snapshot, compare: source, progress }), snapshot };
     if (action === "upload") rmSync(incoming, { force: true });

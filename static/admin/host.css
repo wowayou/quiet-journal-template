@@ -23,11 +23,11 @@
   position: fixed;
   inset: 0 0 auto;
   height: calc(52px + env(safe-area-inset-top, 0px));
-  padding: env(safe-area-inset-top, 0px) 12px 0;
+  padding: env(safe-area-inset-top, 0px) 8px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
   border-bottom: 1px solid var(--qj-border);
 }
 #qj-admin-bar a, #qj-admin-bar button {
@@ -45,7 +45,7 @@
 }
 #qj-admin-bar a { text-decoration: underline; text-underline-offset: 3px; }
 #qj-admin-bar :focus-visible, .qj-dialog :focus-visible, .qj-tools :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-#qj-quality-warning { color: var(--qj-accent); }
+#qj-quality-warning { position: absolute; top: env(safe-area-inset-top, 0px); left: 2px; color: var(--qj-accent); }
 #nc-root {
   /* Keep the CMS's fixed editor overlay inside its documented mount area, below our bar. */
   contain: layout;
