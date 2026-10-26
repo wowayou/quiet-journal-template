@@ -44,6 +44,10 @@ node scripts/core-upgrade.mjs preview /可信的新核心目录 /旧核心清单
 
 从旧单文件配置迁移：把媒体/显示时区移入 `params.toml`，日期/渲染等移入对应核心分片，核对有效值与原配置一致；CMS repo/branch/publish_mode 移入 `data/editor.yaml`，原字段归入核心 schema 或显式扩展，再移除 `static/admin/config.yml`。不要留双份来源，直接 Hugo 与 npm 构建都能生成后台配置。
 
+## 2026-10-26.1：后台字段格式规则
+
+只改核心 `assets/admin/schema.yml`（及测试），无需迁移。已在仓库里的值不会被改写；若某个旧值本来就会让构建失败，下次在后台打开该设置时会看到字段错误，按提示改正即可。
+
 ## 从 v1.0 迁移到本轮更新
 
 1. 合并共享模板、脚本、图标、`assets/og/` 与 CMS 组件；构建专用字体的许可证也要带上。

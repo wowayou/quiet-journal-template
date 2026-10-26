@@ -222,6 +222,8 @@ collections:
                     name: icon_image
                     label: 自定义图标（上传或粘贴 HTTPS 图片地址）
                     accept: image/svg+xml,image/png,image/jpeg,image/webp
+                    # 与 layouts/_partials/media/icon-source.html 一致；最后一支是上传中 CMS 校验的临时文件名。
+                    pattern: ['^$|^/media/(?!(?:.*/)?\.\.(?:/|$))[A-Za-z0-9_./-]+\.(?:svg|png|jpe?g|webp)$|^https://[^/?#@:\s\\]+(?::\d{1,5})?/[^?#\s\\]*\.(?:[Ss][Vv][Gg]|[Pp][Nn][Gg]|[Jj][Pp][Ee]?[Gg]|[Ww][Ee][Bb][Pp])(?:\?[^#\s\\]*)?$|^[A-Za-z0-9_.-]+\.(?:svg|png|jpe?g|webp)$', '须为上传的 SVG/PNG/JPEG/WebP，或以图片扩展名结尾的 https:// 地址（不能用 http://）。']
                     hint: 支持 SVG/PNG/JPEG/WebP，优先于内建图标。外链须为完整 HTTPS 图片地址（不是个人主页）；会由读者浏览器直接访问。推荐下载后上传，避免外站失效与访问记录。SVG 最多 256 KiB，仅支持静态图形和简单颜色样式，不接受脚本、外部引用、动画或编辑器元数据。
                   - &icon_only { name: icon_only, label: 只显示图标, widget: boolean, default: true, required: false }
                   - &target
@@ -256,7 +258,7 @@ collections:
                 widget: object
                 fields:
                   - { <<: *nav_label, default: "" }
-                  - { name: url, label: 网址, pattern: ['^https?://', '外部网站须使用完整的 http:// 或 https:// 地址。'] }
+                  - { name: url, label: 网址, pattern: ['^(?=[^\s\\]{1,4096}$)https?://[^/?#@:]+(?::\d{1,5})?(?:[/?#]\S*)?$', '外部网站须使用完整的 http:// 或 https:// 地址，不含空格或账号密码。'] }
                   - *target
                   - { <<: *nav_icon, default: "" }
                   - *custom_icon
@@ -268,7 +270,8 @@ collections:
             summary: "{{label}}"
             fields:
               - { name: label, label: 名称, hint: 例如 Mastodon、GitHub；填自己的账号，不是模板作者的。 }
-              - { name: url, label: 链接, hint: 个人资料的完整 HTTPS 地址；邮件用 mailto:。 }
+              # 与 layouts/_partials/links/resolve.html 一致；友链复用同一规则。
+              - { name: url, label: 链接, pattern: &link_url ['^(?=[^\s\\]{1,4096}$)(?:/(?!/)\S*|https?://[^/?#@:]+(?::\d{1,5})?(?:[/?#]\S*)?|mailto:\S+|tel:\S+)$', '须为站内路径（如 /about/）、https:// 网址、mailto: 或 tel:，不能含空格或其他协议。'], hint: 个人资料的完整 HTTPS 地址；邮件用 mailto:。 }
               - { <<: *nav_icon, default: link }
               - *custom_icon
               - *target
@@ -308,7 +311,7 @@ collections:
             required: false
             fields:
               - { name: name, label: 名称 }
-              - { name: url, label: 网址 }
+              - { name: url, label: 网址, pattern: *link_url }
               - { name: note, label: 一句话介绍, required: false }
               - *target
       - name: widgets
@@ -340,13 +343,13 @@ collections:
         file: data/comments.yaml
         fields:
           - { name: enabled, label: 启用评论入口, widget: boolean, default: false, hint: 先按 COMMENTS.md 部署并验收隔离面板与 Waline 服务，不能仅打开开关。 }
-          - { name: origin, label: 隔离面板的 HTTPS 源, required: false, hint: '例如 https://comments.example.com，不带路径。必须与博客不同源；这里不填写 API、数据库或邮件密钥。' }
+          - { name: origin, label: 隔离面板的 HTTPS 源, required: false, pattern: ['^$|^https://[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?(?::(?:[1-9]\d{0,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5]))?/?$', '只填 https://域名，可带端口；不带路径、查询或账号。'], hint: '例如 https://comments.example.com，不带路径。必须与博客不同源；这里不填写 API、数据库或邮件密钥。' }
       - name: newsletter
         label: 邮件订阅（先开通账号，默认不发信）
         file: data/newsletter.yaml
         fields:
           - { name: enabled, label: 显示邮件订阅表单, widget: boolean, default: false, hint: 先确认 Buttondown 账号及免费范围；这里只显示入口，不自动发送邮件。 }
-          - { name: username, label: Buttondown 用户名, required: false, hint: 仅用户名，不是网址或 API 令牌；开启时必须填写。 }
+          - { name: username, label: Buttondown 用户名, required: false, pattern: ['^$|^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$', '只填用户名：字母或数字开头，可含 - 和 _，最多 64 个字符。'], hint: 仅用户名，不是网址或 API 令牌；开启时必须填写。 }
           - { name: heading, label: 小标题, required: false, default: 喜欢这些记录？ }
           - { name: text, label: 订阅说明, widget: text, required: false, hint: 说明真实发送频率；未开启自动发送时不要承诺每篇通知。 }
       - name: answers

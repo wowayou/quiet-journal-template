@@ -182,6 +182,14 @@ try {
   await ev(`(()=>{const input=document.querySelector('[data-key-path="origin"] input');input.value='https://comments.example.test';input.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('[data-key-path="enabled"] [role=switch], [data-key-path="enabled"] [role=checkbox], [data-key-path="enabled"] input[type=checkbox]').click();})()`);
   await save(); await wait(500); saved = await stored();
   ok("CMS 评论配置保存为布尔开关和面板源，不混入站点/凭据", /enabled: true/.test(saved.get("data/comments.yaml").toString()) && /origin: https:\/\/comments\.example\.test/.test(saved.get("data/comments.yaml").toString()));
+  // A value the build would reject must be stopped by the CMS before it reaches the repository.
+  const setOrigin = (value) => ev(`(()=>{const input=document.querySelector('[data-key-path="origin"] input');input.value=${JSON.stringify(value)};input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await ev(`location.hash='#/collections/posts'`); await wait(200); await ev(`location.hash='#/collections/settings/entries/comments'`);
+  await until(`document.querySelector('[data-key-path="origin"] input')?.value==="https://comments.example.test"`);
+  await setOrigin("https://comments.example.test/path"); await save(); await wait(500);
+  const blocked = (await stored()).get("data/comments.yaml").toString();
+  ok("构建会拒绝的面板源在后台保存前被拦下并给出中文原因，仓库文件不变", blocked.includes("origin: https://comments.example.test\n") && await ev(`document.querySelector('#nc-root').innerText.includes('不带路径、查询或账号')`));
+  await setOrigin("https://comments.example.test"); await wait(300); // Back to the saved value; nothing left unsaved.
   await ev(`location.hash='#/collections/posts'`);
   await until(`[...document.querySelectorAll('#entry-list [role=row]')].some(row=>row.textContent.includes('中文回忆'))`);
   await ev(`[...document.querySelectorAll('#entry-list [role=row]')].find(row=>row.textContent.includes('中文回忆')).click()`);
