@@ -46,6 +46,10 @@
 #qj-admin-bar a { text-decoration: underline; text-underline-offset: 3px; }
 #qj-admin-bar :focus-visible, .qj-dialog :focus-visible, .qj-tools :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 #qj-quality-warning { position: absolute; top: env(safe-area-inset-top, 0px); left: 2px; color: var(--qj-accent); }
+#qj-status-warning { margin-left: -6px; color: var(--qj-accent); font-size: 10px; align-self: flex-start; margin-top: 10px; }
+.qj-dialog ul { margin: 12px 0; padding-left: 20px; }
+.qj-dialog li + li { margin-top: 6px; }
+.qj-dialog .qj-actions a { display: inline-flex; align-items: center; min-height: 44px; color: var(--qj-accent); text-underline-offset: 3px; }
 #nc-root {
   /* Keep the CMS's fixed editor overlay inside its documented mount area, below our bar. */
   contain: layout;

@@ -9,7 +9,7 @@
     <a class="site-title" href="{{ site.Home.RelPermalink }}">{{ $site.title | default site.Title }}</a>
     <nav class="site-nav" id="site-nav" aria-label="主导航">
       <ul>
-        {{- range partialCached "navigation.html" . "navigation" }}
+        {{- range (partialCached "navigation.html" . "navigation").items }}
         {{- $link := .link }}
         {{- $active := eq $link.url $current }}
         {{- $label := .label }}{{ if $link.new }}{{ $label = printf "%s（新标签页打开）" $label }}{{ end }}
@@ -21,7 +21,7 @@
       </ul>
     </nav>
     <div class="site-actions">
-      {{- range first 1 (where (partialCached "widgets/enabled.html" . "widgets") "type" "search") }}
+      {{- range first 1 (where (partialCached "widgets/enabled.html" . "widgets").items "type" "search") }}
       {{- $href := printf "#widget-%s" .id }}{{ if and (eq .slot "home-after-intro") (not $.IsHome) }}{{ $href = printf "%s%s" site.Home.RelPermalink $href }}{{ end }}
       <a class="icon-btn search-toggle" href="{{ $href }}" aria-label="站内搜索" title="站内搜索">{{ partial "icon.html" (dict "name" "search") }}</a>
       {{- end }}

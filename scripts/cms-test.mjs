@@ -79,7 +79,7 @@ try {
     await browser.send("Emulation.setDeviceMetricsOverride", { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
     await browser.send("Emulation.setTouchEmulationEnabled", { enabled: width < 600 }); await wait(250);
     ok(`${width}px：独立工具栏不溢出，也不覆盖 CMS 挂载区`, await ev(`(()=>{const bar=document.querySelector('#qj-admin-bar').getBoundingClientRect();const root=document.querySelector('#nc-root').getBoundingClientRect();return document.documentElement.scrollWidth<=innerWidth && root.top>=bar.bottom-1 && bar.bottom<=70;})()`));
-    ok(`${width}px：发布说明入口可点、另开标签且不假报成功`, await ev(`(()=>{const link=document.querySelector('a[href="./publishing.html"]');const r=link.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===link&&link.target==='_blank'&&link.title.includes('不等于网站上线');})()`));
+    ok(`${width}px：网站状态按钮可点，弹窗显示真实生成时间并给出发布说明入口`, await ev(`(async()=>{const b=document.querySelector('#qj-status-open');const r=b.getBoundingClientRect();if(!(r.left>=0&&r.right<=innerWidth&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===b&&!b.disabled))return false;b.click();for(let i=0;i<40&&!document.querySelector('#qj-status-headline').textContent.includes('生成于');i++)await new Promise(d=>setTimeout(d,50));const d=document.querySelector('#qj-status-dialog');const link=d.querySelector('a[href="./publishing.html"]');const ok=d.open&&document.querySelector('#qj-status-headline').textContent.includes('生成于')&&!document.querySelector('#qj-status-empty').hidden&&link.target==='_blank'&&document.documentElement.scrollWidth<=innerWidth;d.querySelector('[data-close]').click();await new Promise(r=>setTimeout(r,50));return ok&&document.activeElement===b;})()`));
     if (process.env.QJ_SCREENSHOTS) {
       mkdirSync(process.env.QJ_SCREENSHOTS, { recursive: true });
       const shot = await browser.send("Page.captureScreenshot", { format: "png" });
@@ -216,7 +216,7 @@ try {
   for (const width of [320, 1280]) {
     await browser.send("Emulation.setDeviceMetricsOverride", { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
     await browser.send("Page.navigate", { url: `${server.url}/admin/publishing.html` }); await wait(250);
-    ok(`${width}px：发布兜底说明无脚本、无横向溢出，明确不读取实际状态`, await ev(`document.documentElement.scrollWidth<=innerWidth && document.querySelectorAll('script,iframe,form').length===0 && document.body.innerText.includes('保存到仓库不等于网站已上线') && document.body.innerText.includes('这里不读取云端状态') && document.body.innerText.includes('不会发布')`));
+    ok(`${width}px：发布兜底说明无脚本、无横向溢出，明确不读取实际状态`, await ev(`document.documentElement.scrollWidth<=innerWidth && document.querySelectorAll('script,iframe,form').length===0 && document.body.innerText.includes('保存到仓库不等于网站已上线') && document.body.innerText.includes('这个页面不读取云端状态') && document.body.innerText.includes('网站状态') && document.body.innerText.includes('不会发布')`));
     if (process.env.QJ_SCREENSHOTS) {
       const shot = await browser.send("Page.captureScreenshot", { format: "png" });
       writeFileSync(join(process.env.QJ_SCREENSHOTS, `cms-publishing-${width}.png`), Buffer.from(shot.data, "base64"));

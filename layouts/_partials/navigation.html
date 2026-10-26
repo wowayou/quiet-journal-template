@@ -1,6 +1,10 @@
-{{- /* 导航内部引用以页面 ID 保存，不依赖标题。旧 url 格式仍兼容，由产物检查兜底。 */ -}}
+{{- /* 导航内部引用以页面 ID 保存，不依赖标题。旧 url 格式仍兼容，由产物检查兜底。
+  返回 dict：items 为可显示的导航；warnings 为被跳过的项（显示在后台“网站状态”和构建日志）。
+  指向不存在或未发布页面的导航只跳过这一项，不阻止整站发布；格式类错误仍然直接失败。 */ -}}
 {{- $items := slice -}}
+{{- $warnings := slice -}}
 {{- range hugo.Data.site.nav -}}
+  {{- $skip := false -}}
   {{- $url := .url | default "" -}}
   {{- $type := .type | default "legacy" -}}
   {{- if eq $type "home" -}}
@@ -8,7 +12,10 @@
   {{- else if eq $type "page" -}}
     {{- $page := site.GetPage (.page | default "__missing__") -}}
     {{- if or (not $page) (and $page (or $page.Draft ($page.Date.After now) (not ($page.OutputFormats.Get "html")))) -}}
-      {{- errorf "导航 %q：站内页面 %q 不存在或未发布。先发布页面，再加入导航；撤下前先移除导航。" .label .page -}}
+      {{- $msg := printf "导航“%s”指向的页面“%s”不存在或未发布，已暂时隐藏这一项。发布该页面，或在站点设置里删掉这条导航。" .label .page -}}
+      {{- warnf "%s" $msg -}}
+      {{- $warnings = $warnings | append $msg -}}
+      {{- $skip = true -}}
     {{- else -}}
       {{- $url = $page.RelPermalink -}}
     {{- end -}}
@@ -19,7 +26,9 @@
   {{- end -}}
   {{- if not .label }}{{ errorf "每条导航必须有名称（纯图标也需要无障碍名称）。" }}{{ end -}}
   {{- if and .icon_only (not (or .icon .icon_image)) }}{{ errorf "导航 %q：只显示图标时必须选择或上传图标。" .label }}{{ end -}}
-  {{- $link := partial "links/resolve.html" (dict "url" $url "target" .target "context" (printf "导航 %q" .label)) -}}
-  {{- $items = $items | append (merge . (dict "link" $link)) -}}
+  {{- if not $skip -}}
+    {{- $link := partial "links/resolve.html" (dict "url" $url "target" .target "context" (printf "导航 %q" .label)) -}}
+    {{- $items = $items | append (merge . (dict "link" $link)) -}}
+  {{- end -}}
 {{- end -}}
-{{- return $items -}}
+{{- return (dict "items" $items "warnings" $warnings) -}}

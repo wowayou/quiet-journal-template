@@ -2,7 +2,7 @@
 
 本仓库是 GitHub Template，不是会自动同步的主题子模块。使用模板创建的仓库有独立历史，**模板后续更新不会自动进入你的博客**。默认选择可审查的手工更新，不新增机器人、定时任务或 GitHub Actions。
 
-2026-10-22 已完成本地验收与提交：Hugo 原生配置分片、核心 CMS schema + 实例 editor 连接，以及固定核心清单/只读三方升级预览。详见 [EVOLUTION.md](EVOLUTION.md)。仍没有自动同步或自动应用器，更新按本文审查、合并、验证。
+2026-10-22 已完成本地验收与提交：Hugo 原生配置分片、核心 CMS schema + 实例 editor 连接，以及固定核心清单/只读三方升级预览。详见 [EVOLUTION.md](EVOLUTION.md)。2026-10-26 起有 `apply`：没有冲突时一条命令更新核心文件；仍不自动同步、提交或部署。
 
 **文件分层不等于独立发布，也不代表线上已经升级。** 当前文章、日常设置与核心设计仍通过一次 Hugo 整站构建。发布前须用最新远端个人输入验证待发布核心与后台规则兼容，发布后再核验实际版本；不能把“升级不覆盖个人文件”当作“正常设置不可能影响构建”的证明。分离保证与未完成边界见 [EVOLUTION.md](EVOLUTION.md)。
 
@@ -37,12 +37,19 @@
 当前 `core-manifest.json` 给出固定版本和受管文件 SHA-256，实例配置、内容、媒体、个人样式与声明扩展不进入清单。`data/widget_extensions.yaml` 引用的 partial/CSS/JS 按实际声明归为使用者文件；全局扩展钩子及独立服务的本地配置/环境、部署关联和备份也排除。只有列出的七个 `_default` 配置分片归核心，环境配置和其他实例分片保留。未声明的同路径定制仍做三方冲突比较，不能据此删除。不要把清单当可信签名；来源仍须可信。更新时在私人备份和干净分支上执行：
 
 ```sh
-node scripts/core-upgrade.mjs preview /可信的新核心目录 /旧核心清单.json
+node scripts/core-upgrade.mjs preview /可信的新核心目录 core-manifest.json   # 只看
+node scripts/core-upgrade.mjs apply   /可信的新核心目录                       # 无冲突时应用
 ```
 
-比较旧核心基线、实例现有文件和新发行：same/update/remove/conflict，若新核心恰好使用已声明个人扩展的路径则标为 protected（受保护），仅生成报告，不写入、不删文件、不执行 Git。已有定制冲突须人工合并；任何一方文件在比较期间变化会拒绝报告；输出带旧/新清单指纹供核对。准备新的发行清单时用 `manifest <明确版本>`，已有清单不会自动覆盖，先审查新版本内容。
+比较旧核心基线、实例现有文件和新发行：same/update/remove/conflict，若新核心恰好使用已声明个人扩展的路径则标为 protected（受保护），仅生成报告，不写入、不删文件、不执行 Git。已有定制冲突须人工合并；任何一方文件在比较期间变化会拒绝报告；输出带旧/新清单指纹供核对。
+
+`apply` 以实例当前的 `core-manifest.json` 为旧基线（也可传第二个参数）：只要有 conflict，或新核心改动了已声明为个人扩展的路径，就停止且不改任何文件；否则写入 update、删除仍与旧基线一致的 remove，最后写新清单并再次比较确认。不碰内容、数据、媒体、个人样式和扩展，不提交、不推送、不部署；应用后先跑 `npm test` 和 `npm run build` 再提交。中途中断可直接重跑。准备新的发行清单时用 `manifest <明确版本>`，已有清单不会自动覆盖，先审查新版本内容。
 
 从旧单文件配置迁移：把媒体/显示时区移入 `params.toml`，日期/渲染等移入对应核心分片，核对有效值与原配置一致；CMS repo/branch/publish_mode 移入 `data/editor.yaml`，原字段归入核心 schema 或显式扩展，再移除 `static/admin/config.yml`。不要留双份来源，直接 Hugo 与 npm 构建都能生成后台配置。
+
+## 2026-10-26.5：网站状态、跨项设置不阻断发布、一键应用核心
+
+用 `node scripts/core-upgrade.mjs apply <新核心目录>` 应用即可。旧实例的升级脚本还没有 `apply`：第一次请用新核心目录里的脚本运行 `node <新核心目录>/scripts/core-upgrade.mjs apply <新核心目录>`（在实例根目录执行），之后实例自带。新增 `static/admin/site-status.js` 与 `layouts/_partials/site/status.html`（生成 `/build.json`）；后台“发布说明”链接移进“网站状态”弹窗。`navigation.html` 与 `widgets/enabled.html` 改为返回 `{items, warnings}`，个人扩展若直接调用它们，请改用 `.items`。导航指向已删页面、挂件 ID 重复、开启订阅/评论却没填账号不再让构建失败，而是跳过并提示。
 
 ## 2026-10-26.4：页脚居中与答案之书
 

@@ -1,11 +1,19 @@
 {{- $definitions := hugo.Data.widget_types | default dict -}}
 {{- range $name, $_ := hugo.Data.widget_extensions }}{{ if isset $definitions $name }}{{ errorf "widget_extensions 不得覆盖内建类型 %q；请用独立名称。" $name }}{{ end }}{{ end -}}
 {{- $definitions = merge $definitions (hugo.Data.widget_extensions | default dict) -}}
+{{- /* 返回 dict：items 为启用的挂件；warnings 为被跳过的重复项。格式与白名单错误仍直接失败。 */ -}}
 {{- $enabled := slice -}}
 {{- $ids := slice -}}
+{{- $warnings := slice -}}
 {{- if gt (len (hugo.Data.widgets | default slice)) 8 }}{{ errorf "最多配置 8 个挂件；避免导航和阅读空间被挂件挤占。" }}{{ end -}}
 {{- range hugo.Data.widgets -}}
-  {{- if or (not (findRE `^[a-z][a-z0-9-]{0,31}$` (.id | default ""))) (in $ids .id) }}{{ errorf "挂件 ID 无效或重复：%q" .id }}{{ end -}}
+  {{- if not (findRE `^[a-z][a-z0-9-]{0,31}$` (.id | default "")) }}{{ errorf "挂件 ID 无效：%q" .id }}{{ end -}}
+  {{- if in $ids .id -}}
+    {{- $msg := printf "挂件 ID“%s”重复，只显示第一个，后面的“%s”已跳过。在可选挂件里改一个不同的 ID。" .id (.title | default .type) -}}
+    {{- warnf "%s" $msg -}}
+    {{- $warnings = $warnings | append $msg -}}
+    {{- continue -}}
+  {{- end -}}
   {{- $ids = $ids | append .id -}}
   {{- $definition := index $definitions (.type | default "") -}}
   {{- if not $definition -}}
@@ -24,4 +32,4 @@
     {{- end -}}
   {{- end -}}
 {{- end -}}
-{{- return $enabled -}}
+{{- return (dict "items" $enabled "warnings" $warnings) -}}

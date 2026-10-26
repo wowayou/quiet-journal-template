@@ -14,6 +14,12 @@
     {{- end -}}
   {{- end -}}
 {{- end -}}
+{{- $warning := "" -}}
+{{- if and $enabled (not $origin) -}}
+  {{- $warning = "评论入口已开启但没有填写隔离面板的源，评论暂不显示。填写面板地址，或关闭评论。" -}}
+  {{- warnf "%s" $warning -}}
+  {{- $enabled = false -}}
+{{- end -}}
 {{- if $enabled -}}
   {{- if not (findRE `^https://[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?(?::[1-9][0-9]{0,4})?/?$` $origin) -}}
     {{- errorf "comments.origin 必须是独立的 HTTPS 源，不能带路径、查询、片段、凭据或控制字符。" -}}
@@ -28,4 +34,4 @@
     {{- if eq $origin (printf "%s://%s" $base.Scheme $baseHost) }}{{ errorf "评论面板必须与博客/写作后台跨源，不能把 Waline 程序放到本站。" }}{{ end -}}
   {{- end -}}
 {{- end -}}
-{{- return (dict "enabled" $enabled "origin" $origin) -}}
+{{- return (dict "enabled" $enabled "origin" $origin "warning" $warning) -}}

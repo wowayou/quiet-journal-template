@@ -13,6 +13,13 @@ const meta = (elements, property) => elements.find((tag) => tag.name === "meta" 
 const jsonLd = (html) => JSON.parse(html.match(/<script type=["']?application\/ld\+json["']?>([\s\S]*?)<\/script>/)[1]);
 const using = (fn) => { const f = fixture(); try { fn(f); } finally { f.cleanup(); } };
 
+// The broken nav entry disappears, the rest of the site still builds, and the author is told why.
+const navSkipped = (f) => {
+  success(build(f.root));
+  assert.ok(!/href=["']?\/now\//.test(read(f.root, "public/index.html").match(/<nav[\s\S]*?<\/nav>/)[0]));
+  assert.match(JSON.parse(read(f.root, "public/build.json")).warnings.join(), /导航“现在”指向的页面“now”不存在或未发布/);
+};
+
 test("生产输出：日期、页面类型、文字 OG、RSS、无字体下载与完整内部链接", () => using((f) => {
   success(build(f.root));
   assert.deepEqual(checkSite(join(f.root, "public")), []);
@@ -127,7 +134,7 @@ test("列表型页面复用页头，保留可编辑正文和真实发布/更新�
   assert.ok(pageTags(f.root).some((tag) => tag.name === "a" && tag.attrs.href === "/archive/" && tag.attrs.target === "_blank"));
 }));
 
-test("新页面复用通用组件；改标题不改 URL；草稿/未来/过期导航被拒绝", () => using((f) => {
+test("新页面复用通用组件；改标题不改 URL；导航指向草稿/未来/过期/已删页面时只跳过这一项并在网站状态中提示", () => using((f) => {
   f.site.nav.push({ type: "page", label: "现在", page: "now" }); f.saveSite();
   put(f.root, "content/now.md", document({ title: "Now", layout: "page", draft: false }, "当前在做什么。"));
   success(build(f.root)); assert.ok(existsSync(join(f.root, "public/now/index.html")));
@@ -135,9 +142,9 @@ test("新页面复用通用组件；改标题不改 URL；草稿/未来/过期�
   success(build(f.root)); assert.match(read(f.root, "public/now/index.html"), /完全不同的标题/);
   for (const fields of [{ draft: true }, { date: "2099-01-01T00:00:00Z" }, { expiryDate: "2001-01-01T00:00:00Z" }]) {
     put(f.root, "content/now.md", document({ title: "Now", ...fields }));
-    failed(build(f.root), /不存在或未发布/);
+    navSkipped(f);
   }
-  rmSync(join(f.root, "content/now.md")); failed(build(f.root), /不存在或未发布/);
+  rmSync(join(f.root, "content/now.md")); navSkipped(f);
 }));
 
 test("错误配置阻止构建：页面类型、图标、URL、日期与身份字段", () => using((f) => {
@@ -202,7 +209,12 @@ test("启停与排序：关闭清除挂件 HTML/脚本/数据；关闭回链不�
 
 test("挂件白名单、重复 ID、插槽、空答案和资源缺失在构建时失败", () => using((f) => {
   f.widgets[0].type = "not-a-plugin"; f.saveWidgets(); failed(build(f.root), /未注册的挂件/);
-  f.widgets[0].type = "search"; f.widgets[1].id = "find"; f.saveWidgets(); failed(build(f.root), /ID 无效或重复/);
+  f.widgets[0].type = "search"; f.widgets[1].id = "Bad ID"; f.saveWidgets(); failed(build(f.root), /ID 无效/);
+  // A duplicate ID keeps the first widget and reports the rest; it no longer blocks the site.
+  f.widgets[1].id = "find"; f.widgets[1].enabled = true; f.widgets[1].slot = "home-after-intro"; f.saveWidgets(); success(build(f.root));
+  assert.equal((read(f.root, "public/index.html").match(/id=["']?widget-find/g) || []).length, 1);
+  assert.match(JSON.parse(read(f.root, "public/build.json")).warnings.join(), /挂件 ID“find”重复/);
+  f.widgets[1].enabled = false; f.widgets[1].slot = "content-after";
   f.widgets[1].id = "book"; f.widgets[0].slot = "random"; f.saveWidgets(); failed(build(f.root), /不支持插槽/);
   f.widgets[0].slot = "home-after-intro"; f.widgets[1].enabled = true; f.saveWidgets();
   put(f.root, "data/answers.yaml", '["only one"]'); failed(build(f.root), /需要 2–100/);

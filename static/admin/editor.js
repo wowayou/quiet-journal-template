@@ -99,4 +99,8 @@ export async function startEditor(cms = globalThis.CMS) {
   }
 }
 
-if (typeof document !== "undefined") startEditor();
+if (typeof document !== "undefined") {
+  // Independent of the CMS: status stays readable even if the editor fails to start.
+  import("./site-status.js").then(({ startSiteStatus }) => startSiteStatus()).catch(() => {});
+  startEditor();
+}

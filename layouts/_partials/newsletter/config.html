@@ -3,8 +3,14 @@
 {{- if and (isset $settings "enabled") (ne (printf "%T" $settings.enabled) "bool") }}{{ errorf "newsletter.enabled 必须是布尔值。" }}{{ end -}}
 {{- $enabled := $settings.enabled | default false -}}
 {{- $out := dict "enabled" false -}}
+{{- $name := $settings.username | default "" -}}
+{{- if and $enabled (not $name) -}}
+  {{- $msg := "邮件订阅已开启但没有填写 Buttondown 用户名，表单暂不显示。填写用户名，或关闭订阅。" -}}
+  {{- warnf "%s" $msg -}}
+  {{- $out = dict "enabled" false "warning" $msg -}}
+  {{- $enabled = false -}}
+{{- end -}}
 {{- if $enabled -}}
-  {{- $name := $settings.username | default "" -}}
   {{- if not (findRE `^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$` $name) }}{{ errorf "开启邮件订阅时须填写有效 Buttondown username，不是邮箱、URL 或 API 密钥。" }}{{ end -}}
   {{- $out = dict "enabled" true "url" (printf "https://buttondown.com/%s" $name) "action" (printf "https://buttondown.com/api/emails/embed-subscribe/%s" $name) "heading" ($settings.heading | default "喜欢这些记录？") "text" ($settings.text | default "偶尔把新文章和近况寄给你。确认邮箱后开始接收，随时退订。") -}}
 {{- end -}}

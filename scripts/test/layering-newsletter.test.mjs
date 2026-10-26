@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixture, put, build, read, repo } from './site-fixture.mjs';
 import { tags, checkSite } from '../check-site.mjs';
 import { checkConfig } from '../check-config.mjs';
-import { coreManifest, previewUpgrade, ownership } from '../core-upgrade.mjs';
+import { coreManifest, previewUpgrade, applyUpgrade, ownership } from '../core-upgrade.mjs';
 
 test('配置分层：直接 Hugo 生成 CMS，两组实例参数、无静态副本、扩展不可覆盖核心',()=>{
  const f=fixture();try {
@@ -59,7 +59,7 @@ test('邮件订阅默认关闭；仅公开文章原生表单，CSP 精确路径�
   const headers=read(f.root,'public/_headers');assert.match(headers,/\/posts\/a\/\n  ! Content-Security-Policy\n  Content-Security-Policy:.*form-action 'self' https:\/\/buttondown.com\/api\/emails\/embed-subscribe\/synthetic-user/);
   assert.ok(!headers.slice(headers.indexOf('/admin/*'),headers.indexOf('/posts/')).includes('buttondown'));
   for(const enabled of [0,'',null,'false']) {put(f.root,'data/newsletter.yaml',JSON.stringify({enabled}));const invalid=build(f.root);assert.notEqual(invalid.status,0);assert.match(invalid.stderr,/布尔/);}
-  for(const username of ['','https://evil.test','user@host','../x']) {put(f.root,'data/newsletter.yaml',JSON.stringify({enabled:true,username}));assert.notEqual(build(f.root).status,0);}
+  for(const username of ['https://evil.test','user@host','../x']) {put(f.root,'data/newsletter.yaml',JSON.stringify({enabled:true,username}));assert.notEqual(build(f.root).status,0);}
  }finally{f.cleanup();}
 });
 test('精确订阅响应头遵守部署限额，不静默截断文章策略',()=>{
@@ -129,5 +129,33 @@ test('核心清单明确归属；升级只读三方比较，私人文件不进�
   put(b.root,'assets/css/base.css',read(b.root,'assets/css/base.css')+'\n/* core update */');const next=coreManifest(b.root,'v-next');put(b.root,'core-manifest.json',JSON.stringify(next));
   let preview=previewUpgrade({current:a.root,upstream:b.root,previous:before});assert.equal(preview.files.find(f=>f.path==='assets/css/base.css').status,'update');
   put(a.root,'assets/css/base.css',read(a.root,'assets/css/base.css')+'\n/* private edit */');preview=previewUpgrade({current:a.root,upstream:b.root,previous:before});assert.equal(preview.files.find(f=>f.path==='assets/css/base.css').status,'conflict');assert.ok(read(a.root,'assets/css/base.css').includes('private edit'));
+ }finally{a.cleanup();b.cleanup();}
+});
+test('升级应用：无冲突时一次更新/新增/删除核心文件并写新清单；有冲突时一个文件都不改；个人内容与扩展不动',()=>{
+ const a=fixture(),b=fixture();try {
+  const before=coreManifest(a.root,'v-before');put(a.root,'core-manifest.json',JSON.stringify(before));
+  const personal={'content/posts/a/index.md':read(a.root,'content/posts/a/index.md'),'data/site.yaml':read(a.root,'data/site.yaml'),'assets/css/overrides.css':read(a.root,'assets/css/overrides.css')};
+  // Upstream: change one core file, add one, drop one.
+  put(b.root,'assets/css/base.css',read(b.root,'assets/css/base.css')+'\n/* core update */');
+  put(b.root,'layouts/_partials/new-core.html','<p>new</p>');
+  rmSync(join(b.root,'layouts/_partials/pagination.html'));
+  put(b.root,'core-manifest.json',JSON.stringify(coreManifest(b.root,'v-next')));
+  // Conflict first: a private edit to a changed core file blocks everything.
+  const edited=read(a.root,'assets/css/base.css')+'\n/* private edit */';put(a.root,'assets/css/base.css',edited);
+  assert.throws(()=>applyUpgrade({current:a.root,upstream:b.root,previous:before}),/人工合并[\s\S]*assets\/css\/base\.css/);
+  assert.equal(read(a.root,'assets/css/base.css'),edited);assert.ok(!existsSync(join(a.root,'layouts/_partials/new-core.html')));assert.ok(existsSync(join(a.root,'layouts/_partials/pagination.html')));
+  assert.deepEqual(JSON.parse(read(a.root,'core-manifest.json')),before);
+  // Resolve the conflict, then apply cleanly.
+  put(a.root,'assets/css/base.css',read(b.root,'assets/css/base.css').replace('\n/* core update */',''));
+  const result=applyUpgrade({current:a.root,upstream:b.root,previous:before});
+  assert.deepEqual(result.updated.sort(),['assets/css/base.css','layouts/_partials/new-core.html']);
+  assert.deepEqual(result.removed,['layouts/_partials/pagination.html']);
+  assert.equal(read(a.root,'assets/css/base.css'),read(b.root,'assets/css/base.css'));
+  assert.ok(!existsSync(join(a.root,'layouts/_partials/pagination.html')));
+  assert.equal(JSON.parse(read(a.root,'core-manifest.json')).version,'v-next');
+  for(const [path,text] of Object.entries(personal)) assert.equal(read(a.root,path),text,path);
+  // Re-running is a no-op.
+  const again=applyUpgrade({current:a.root,upstream:b.root,previous:JSON.parse(read(a.root,'core-manifest.json'))});
+  assert.deepEqual([again.updated.length,again.removed.length],[0,0]);
  }finally{a.cleanup();b.cleanup();}
 });

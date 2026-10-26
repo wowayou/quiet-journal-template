@@ -14,8 +14,20 @@
       <button id="qj-quality-open" type="button" disabled aria-haspopup="dialog">上传质量：站点设置</button>
       <span id="qj-quality-warning" hidden aria-label="质量设置提示">●</span>
       <a href="./tools.html" target="_blank" rel="noopener noreferrer" aria-label="内容导入 / 导出">导入导出</a>
-      <a href="./publishing.html" target="_blank" rel="noopener noreferrer" title="保存到仓库不等于网站上线">发布说明</a>
+      <button id="qj-status-open" type="button" disabled aria-haspopup="dialog" title="保存到仓库不等于网站上线">网站状态</button>
+      <span id="qj-status-warning" hidden aria-hidden="true">●</span>
     </nav>
+    <dialog id="qj-status-dialog" class="qj-dialog" aria-labelledby="qj-status-title">
+      <h2 id="qj-status-title">网站状态</h2>
+      <p id="qj-status-headline" role="status" aria-live="polite">正在读取…</p>
+      <p>保存后通常几分钟内重新生成。如果这里的时间早于你最后一次保存，说明新版本还没上线，文章已在仓库里，不会丢。</p>
+      <ul id="qj-status-list" hidden></ul>
+      <p id="qj-status-empty" hidden>没有被跳过的设置。</p>
+      <div class="qj-actions">
+        <a href="./publishing.html" target="_blank" rel="noopener noreferrer">发布说明与失败兜底</a>
+        <button type="button" data-close>关闭</button>
+      </div>
+    </dialog>
     <dialog id="qj-quality-dialog" class="qj-dialog" aria-labelledby="qj-quality-title">
       <h2 id="qj-quality-title">新上传图片的质量</h2>
       <form>

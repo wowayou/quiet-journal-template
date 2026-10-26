@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Explicit core ownership and three-way upgrade preview. No applying, Git operations or network.
-import { readFileSync, readdirSync, lstatSync, existsSync, writeFileSync } from "node:fs";
+// Explicit core ownership, three-way upgrade preview, and conflict-free apply. No Git operations or network.
+import { readFileSync, readdirSync, lstatSync, existsSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync, renameSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { resolve, join } from "node:path";
+import { resolve, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseDocument } from "yaml";
 const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -115,6 +115,41 @@ export function previewUpgrade({ current, upstream, previous }) {
   if (createHash('sha256').update(JSON.stringify(JSON.parse(readFileSync(join(upstream,'core-manifest.json'),'utf8')))).digest('hex') !== nextFingerprint) throw new Error('发行清单在比较期间改变。');
   return { operation: "preview-only", previousFingerprint, nextFingerprint, from: before.version, to: next.version, files: result, conflicts: result.filter((e) => e.status === "conflict").length, notice: "仅比较受管核心，不应用、删除、提交或部署。实例文件保持不变。" };
 }
+// Apply only when the preview is clean: no conflicts, and no core change on a path the instance
+// declared as its own. Copies update/add files, removes core files the release dropped (only when
+// still identical to the old baseline), then writes the new manifest last so an interrupted run
+// is simply re-run. Never touches content, data, media, personal styles or declared extensions.
+export function applyUpgrade({ current, upstream, previous }) {
+  const plan = previewUpgrade({ current, upstream, previous });
+  const blocked = plan.files.filter((entry) => entry.status === "conflict" || (entry.status === "protected" && previous.files[entry.path] !== JSON.parse(readFileSync(join(upstream, "core-manifest.json"), "utf8")).files[entry.path]));
+  if (blocked.length) throw new Error(`有 ${blocked.length} 个文件需要先人工合并，未做任何修改：${blocked.slice(0, 5).map((e) => e.path).join("、")}${blocked.length > 5 ? " 等" : ""}`);
+  const next = JSON.parse(readFileSync(join(upstream, "core-manifest.json"), "utf8"));
+  const root = resolve(current), done = { updated: [], removed: [] };
+  const safeTarget = (path) => {
+    // Refuse to write through a symlinked or non-directory parent inside the instance.
+    let at = root;
+    for (const part of path.split("/").slice(0, -1)) {
+      at = join(at, part);
+      if (existsSync(at)) { const stat = lstatSync(at); if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error(`目标目录不是普通目录：${path}`); }
+    }
+    return join(root, path);
+  };
+  for (const entry of plan.files) {
+    if (entry.status === "update") {
+      const target = safeTarget(entry.path), temp = `${target}.qj-upgrade`;
+      mkdirSync(dirname(target), { recursive: true });
+      copyFileSync(join(upstream, entry.path), temp); renameSync(temp, target);
+      if (hash(target) !== next.files[entry.path]) throw new Error(`写入后校验失败：${entry.path}`);
+      done.updated.push(entry.path);
+    } else if (entry.status === "remove" && entry.currentSHA256 !== undefined) {
+      unlinkSync(safeTarget(entry.path)); done.removed.push(entry.path);
+    }
+  }
+  writeFileSync(join(root, "core-manifest.json"), JSON.stringify(next, null, 2) + "\n");
+  const after = previewUpgrade({ current, upstream, previous: next });
+  if (after.files.some((entry) => !["same", "protected"].includes(entry.status))) throw new Error("应用后复核不一致，请检查工作区（未提交、未部署）。");
+  return { operation: "applied", from: plan.from, to: plan.to, updated: done.updated, removed: done.removed, notice: "只改受管核心文件与核心清单；未提交、未推送、未部署。请先运行测试和构建再提交。" };
+}
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const [command, ...args] = process.argv.slice(2);
@@ -122,6 +157,14 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       if (existsSync("core-manifest.json")) throw new Error("已有核心清单；更新发行版本时请显式审查后重新生成，不自动覆盖。");
       writeFileSync("core-manifest.json", JSON.stringify(coreManifest(".", args[0]), null, 2) + "\n", { flag: "wx" });
     } else if (command === "preview" && args.length === 2) console.log(JSON.stringify(previewUpgrade({ current: ".", upstream: resolve(args[0]), previous: JSON.parse(readFileSync(args[1], "utf8")) }), null, 2));
-    else throw new Error("用法：node scripts/core-upgrade.mjs manifest <固定版本> | preview <新核心目录> <旧核心清单>");
+    else if (command === "apply" && args.length >= 1 && args.length <= 2) {
+      // The instance's own core-manifest.json is the old baseline by default; read it before it is replaced.
+      const previous = JSON.parse(readFileSync(args[1] ?? "core-manifest.json", "utf8"));
+      const result = applyUpgrade({ current: ".", upstream: resolve(args[0]), previous });
+      console.log(`核心 ${result.from} → ${result.to}：更新 ${result.updated.length} 个、删除 ${result.removed.length} 个文件。${result.notice}`);
+      for (const path of result.updated) console.log(`  更新 ${path}`);
+      for (const path of result.removed) console.log(`  删除 ${path}`);
+    }
+    else throw new Error("用法：node scripts/core-upgrade.mjs manifest <固定版本> | preview <新核心目录> <旧核心清单> | apply <新核心目录> [旧核心清单]");
   } catch (e) { console.error(e.message); process.exitCode = 1; }
 }

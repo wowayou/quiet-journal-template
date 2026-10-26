@@ -1,0 +1,10 @@
+{{- /* 生成 /build.json：网站生成时间与本次被跳过的设置。后台“网站状态”读取它，作者不用去翻构建日志。
+  只含公开信息（时间、提示文字），不含提交、账户或路径。 */ -}}
+{{- $warnings := slice -}}
+{{- $warnings = $warnings | append (partialCached "navigation.html" . "navigation").warnings -}}
+{{- $warnings = $warnings | append (partialCached "widgets/enabled.html" . "widgets").warnings -}}
+{{- with (partialCached "newsletter/config.html" . "newsletter-config").warning }}{{ $warnings = $warnings | append . }}{{ end -}}
+{{- with (partialCached "comments/config.html" . "comments-config").warning }}{{ $warnings = $warnings | append . }}{{ end -}}
+{{- $status := dict "format" "quiet-journal-status" "version" 1 "built" (now.UTC.Format "2006-01-02T15:04:05Z") "warnings" $warnings -}}
+{{- $published := (resources.FromString "build.json" ($status | jsonify)).RelPermalink -}}
+{{- return true -}}

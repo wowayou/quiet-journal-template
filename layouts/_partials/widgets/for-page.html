@@ -1,5 +1,5 @@
 {{- $widgets := slice -}}
-{{- range partialCached "widgets/enabled.html" . "widgets" -}}
+{{- range (partialCached "widgets/enabled.html" . "widgets").items -}}
   {{- if or (ne .slot "home-after-intro") $.IsHome }}{{ $widgets = $widgets | append . }}{{ end -}}
 {{- end -}}
 {{- return $widgets -}}

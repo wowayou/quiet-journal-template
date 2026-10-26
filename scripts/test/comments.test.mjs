@@ -157,7 +157,8 @@ test("评论键不跟随标题/语义地址/域名改变；源文件身份冲突
 }));
 
 test("评论配置、遗留响应头和字段类型错误在构建时拒绝", () => using((f) => {
-  for (const origin of ["", "http://comments.example.test", "https://example.test:443/", "https://comments.example.test/path", "https://u:p@comments.example.test", "https://comments.example.test;unsafe", "https://comments.example.test:65536"]) {
+  // An empty origin with comments on now stays off with a warning (see site-status.test.mjs); a wrong one still fails.
+  for (const origin of ["http://comments.example.test", "https://example.test:443/", "https://comments.example.test/path", "https://u:p@comments.example.test", "https://comments.example.test;unsafe", "https://comments.example.test:65536"]) {
     put(f.root, "data/comments.yaml", JSON.stringify({ enabled: true, origin }));
     fail(build(f.root), /comments\.origin|跨源/);
   }

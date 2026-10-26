@@ -2,7 +2,7 @@
 
 一个安静、易于修改的个人生活博客模板，基于 Hugo。博客本体没有数据库，不需要服务器或统计脚本，默认只加载同源资源。可选免登录评论由隔离的面板和独立服务提供，读者主动加载后才连接。
 
-> 当前核心 `2026-10-26.4`。更新日志见 [CHANGELOG.md](CHANGELOG.md)；已有站点更新前请读 [UPDATING.md](docs/UPDATING.md)。可选评论与邮件默认关闭，真实服务及 Safari/iPhone 新交互需各自验收。
+> 当前核心 `2026-10-26.5`。更新日志见 [CHANGELOG.md](CHANGELOG.md)；已有站点更新前请读 [UPDATING.md](docs/UPDATING.md)。可选评论与邮件默认关闭，真实服务及 Safari/iPhone 新交互需各自验收。
 
 ## 用这个模板建站
 
@@ -62,7 +62,8 @@ draft: true                # true 时不会出现在网站上
 - CMS 可新建普通页面；页面功能、导航内部引用与外链分开，坏的本站链接阻止发布，不自动生成空页面。
 - 后台可选新上传图片质量（站点设置 / 75 / 85 / 92）；本机偏好、下次载入生效，不重压旧图，见 [EDITING.md](docs/EDITING.md#图片压缩与质量选择)。
 - 本地内容工具 V2：ZIP/目录、自动检查、摘要、可分页文字比较、完整报告、确认哈希绑定及刷新/取消；不覆盖或自动发布，见 [TRANSFER.md](docs/TRANSFER.md)。
-- 核心/实例分层：CMS 核心 schema 与实例连接分开，Hugo 原生配置分片、固定核心清单和只读升级预览，见 [UPDATING.md](docs/UPDATING.md)。
+- 核心/实例分层：CMS 核心 schema 与实例连接分开，Hugo 原生配置分片、固定核心清单、升级预览与无冲突一键应用，见 [UPDATING.md](docs/UPDATING.md)。
+- 后台“网站状态”：网站当前版本的生成时间与被跳过的设置；导航、挂件等跨项设置出错只跳过那一项，不阻止整站上线，见 [EDITING.md](docs/EDITING.md)。
 - 可选 Buttondown 文末邮件表单与页脚链接，默认关闭，不自动发信或添加订阅者；见 [CUSTOMIZE.md](docs/CUSTOMIZE.md)。
 - 可选免登录留言/回复：默认关闭，Waline 在独立面板中运行，不与博客或写作令牌共享源；不向读者收邮箱、不发邮件。面板与 Vercel Hobby + Neon Free 服务部署包已在本地实现/验证，已处理依赖告警并提供 GPL 对应源码；云端未开通，见 [COMMENTS.md](docs/COMMENTS.md)。
 - 首页图标导航；favicon 可上传位图，自定义社交/导航图标还支持静态 SVG 和 HTTPS 图片地址，列表可排序、自动换行。SVG 不内联执行，外链会由访客直接请求该源，推荐下载后上传。

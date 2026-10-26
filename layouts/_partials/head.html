@@ -2,6 +2,7 @@
 {{- $validated := partialCached "site/validate.html" . "validate" -}}
 {{- $headers := partialCached "site/headers.html" . "headers" -}}
 {{- $editor := partialCached "site/editor.html" . "editor" -}}
+{{- $status := partialCached "site/status.html" . "status" -}}
 {{- $site := hugo.Data.site -}}
 {{- $siteTitle := $site.title | default site.Title -}}
 {{- $title := partial "title.html" . -}}
