@@ -107,9 +107,10 @@ try {
       const layout = ${width} > 704 ? art.left >= Math.max(...text.map((r) => r.right)) - 1 && art.right >= hero.right - 2 : art.bottom <= text[0].top + 1;
       return inside && ordered && layout;
     })()`));
-    ok(`${width}px：页脚一句话在上，联系入口与回到顶部同组，版权在最下`, await ev(`(() => {
-      const q = document.querySelector('.site-footer__quote').getBoundingClientRect(), row = document.querySelector('.site-footer__row').getBoundingClientRect(), legal = document.querySelector('.site-footer__legal').getBoundingClientRect();
-      return q.bottom <= row.top + 1 && row.bottom <= legal.top + 1 && !!document.querySelector('.site-footer__row .back-to-top');
+    ok(`${width}px：页脚居中纵向排列：一句话 → 图标 → 版权 → 回到顶部`, await ev(`(() => {
+      const box = document.querySelector('.site-footer__inner').getBoundingClientRect(), mid = box.left + box.width / 2;
+      const parts = ['.site-footer__quote', '.site-footer__connect', '.site-footer__legal', '.site-footer .back-to-top'].map((s) => document.querySelector(s).getBoundingClientRect());
+      return parts.every((r, i) => Math.abs(r.left + r.width / 2 - mid) < 3 && (i === 0 || r.top >= parts[i - 1].bottom - 1));
     })()`));
     ok(`${width}px：阅读与页脚操作区至少 44px`, await ev("[...document.querySelectorAll('.hero__read, .site-footer a')].every(a => { const r = a.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; })"));
     ok(`${width}px：另一主题下长欢迎标题和页脚也不溢出`, await ev("document.documentElement.scrollWidth <= innerWidth"));

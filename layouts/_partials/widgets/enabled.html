@@ -17,7 +17,7 @@
       {{- if not (templates.Exists (printf "_partials/%s" $definition.partial)) }}{{ errorf "挂件 %q 缺少模板 %q。" .id $definition.partial }}{{ end -}}
       {{- range slice $definition.script $definition.style }}{{ with . }}{{ if not (resources.Get .) }}{{ errorf "挂件资源不存在：%s" . }}{{ end }}{{ end }}{{ end -}}
       {{- if eq .type "answers" -}}
-        {{- if or (lt (len hugo.Data.answers) 2) (gt (len hugo.Data.answers) 100) }}{{ errorf "答案之书需要 2–100 条原创句子。" }}{{ end -}}
+        {{- if or (lt (len hugo.Data.answers) 2) (gt (len hugo.Data.answers) 100) }}{{ errorf "答案之书需要 2–100 条句子。" }}{{ end -}}
         {{- range hugo.Data.answers }}{{ if or (not (strings.TrimSpace .)) (gt (len .) 600) }}{{ errorf "答案之书的句子不能为空或超过 600 字节。" }}{{ end }}{{ end -}}
       {{- end -}}
       {{- $enabled = $enabled | append (merge . (dict "definition" $definition)) -}}

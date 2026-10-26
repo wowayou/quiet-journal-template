@@ -1,4 +1,4 @@
-{{- /* 页脚两行：一句话 + 联系入口 + 回到顶部；版权与回链一行小字。站名已在页头，不重复。 */ -}}
+{{- /* 页脚：居中纵向排列。一句话 → 社交与 RSS 图标（可选邮件订阅）→ 版权 → 回链 → 回到顶部。站名已在页头，不重复。 */ -}}
 {{- $site := hugo.Data.site -}}
 {{- $f := $site.footer | default dict -}}
 {{- $rss := site.Home.OutputFormats.Get "rss" -}}
@@ -6,25 +6,13 @@
 {{- $posts := where site.RegularPages "Section" "posts" -}}
 {{- $since := now.Year -}}
 {{- with $posts }}{{ $since = (index (last 1 .) 0).Date.Year }}{{ end -}}
-{{- $connect := or $site.social (and $f.show_rss $rss) $newsletter.enabled -}}
 <footer class="site-footer">
   <div class="site-footer__inner wrap">
     {{- with $f.quote }}<p class="site-footer__quote">{{ . }}</p>{{ end }}
-    {{- if or $connect (ne $f.back_to_top false) }}
-    <div class="site-footer__row">
-      {{- if $connect }}
-      <div class="site-footer__connect">
-        {{- partial "social.html" (dict "rss" false) }}
-        {{- if $newsletter.enabled }}<a class="site-footer__rss" href="{{ $newsletter.url }}" rel="external noopener noreferrer">{{ partial "icon.html" (dict "name" "mail" "size" 16) }}邮件订阅</a>{{ end }}
-        {{- if $f.show_rss }}{{ with $rss }}
-        <a class="site-footer__rss" href="{{ .RelPermalink }}">{{ partial "icon.html" (dict "name" "rss" "size" 16) }}RSS 订阅</a>
-        {{- end }}{{ end }}
-      </div>
-      {{- end }}
-      {{- if ne $f.back_to_top false }}
-      {{- /* #top 没有对应元素时，浏览器按规范滚动到页面顶部 */}}
-      <a class="back-to-top" href="#top">{{ partial "icon.html" (dict "name" "arrow-up" "size" 16) }}回到顶部</a>
-      {{- end }}
+    {{- if or $site.social (and $f.show_rss $rss) $newsletter.enabled }}
+    <div class="site-footer__connect">
+      {{- partial "social.html" (dict "rss" $f.show_rss) }}
+      {{- if $newsletter.enabled }}<a class="site-footer__newsletter" href="{{ $newsletter.url }}" rel="external noopener noreferrer">{{ partial "icon.html" (dict "name" "mail" "size" 16) }}邮件订阅</a>{{ end }}
     </div>
     {{- end }}
     <div class="site-footer__legal">
@@ -36,5 +24,9 @@
       </div>
       {{- end }}
     </div>
+    {{- if ne $f.back_to_top false }}
+    {{- /* #top 没有对应元素时，浏览器按规范滚动到页面顶部 */}}
+    <a class="back-to-top" href="#top">{{ partial "icon.html" (dict "name" "arrow-up" "size" 16) }}回到顶部</a>
+    {{- end }}
   </div>
 </footer>

@@ -503,42 +503,31 @@ html:not(.js) .site-header { position: static; }
   text-decoration: none;
 }
 
-/* ---------- 页脚：一句话、联系入口与回到顶部一行，版权与回链一行小字 ---------- */
+/* ---------- 页脚：居中纵向排列（沿用 v1.0 的层次），每项只出现一次 ---------- */
 .site-footer__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
   padding-top: var(--space-6);
-  padding-bottom: var(--space-6);
+  padding-bottom: var(--space-7);
   border-top: 1px solid var(--line);
+  text-align: center;
   font-size: var(--text-sm);
 }
+/* 居中列里子项按内容宽度排开；长串无空格文字必须能断行，否则会撑宽页面 */
 .site-footer__quote {
-  margin-bottom: var(--space-3);
-  color: var(--muted);
+  max-width: min(32rem, 100%);
+  overflow-wrap: anywhere;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-base);
   line-height: var(--prose-line-height);
   white-space: pre-line;
 }
-.site-footer__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-5);
-}
-.site-footer__connect { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-4); min-width: 0; }
-.site-footer__rss {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 44px;
-}
-.site-footer .social { margin-left: calc(var(--space-2) * -1); }
-.site-footer .back-to-top { flex-shrink: 0; min-height: 44px; }
-.site-footer__legal {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 var(--space-4);
-  margin-top: var(--space-2);
-  color: var(--muted);
-}
-.site-footer__credits { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-4); }
+.site-footer__connect { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 var(--space-4); }
+.site-footer .social { justify-content: center; }
+.site-footer__newsletter { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; }
+.site-footer__legal { color: var(--muted); }
+.site-footer__credits { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 var(--space-4); }
 .site-footer__credits a { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 44px; min-height: 44px; }
+.site-footer .back-to-top { min-height: 44px; }

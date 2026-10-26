@@ -20,6 +20,7 @@ const hasClass = (tag, name) => (tag.attrs.class || "").split(/\s+/).includes(na
 const byClass = (html, name) => tags(html).filter((tag) => hasClass(tag, name));
 const plain = (html) => decodeEntities(html.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim();
 const footer = (html) => html.match(/<footer\b[^>]*class=(?:"site-footer"|site-footer(?=[\s>]))[^>]*>[\s\S]*?<\/footer>/)[0];
+const rssLinks = (html) => tags(html).filter((tag) => tag.name === "a" && /index\.xml$/.test(tag.attrs.href || ""));
 const hero = (html) => html.match(/<section\b[^>]*aria-labelledby=(?:"welcome-title"|welcome-title)[^>]*>[\s\S]*?<\/section>/)[0];
 
 test("首页与页脚：保留配置文字、Markdown 和社交顺序，纯文字不变成可执行标记", () => using((f) => {
@@ -100,7 +101,7 @@ test("页脚：RSS、技术回链、模板回链与回到顶部独立开关，�
     f.saveSite(); success(f);
     const bottom = footer(read(f.root, "public/index.html")), elements = tags(bottom);
     const links = elements.filter((tag) => tag.name === "a");
-    assert.equal(byClass(bottom, "site-footer__rss").length, Number(flags.show_rss));
+    assert.equal(rssLinks(bottom).length, Number(flags.show_rss));
     assert.equal(links.some((tag) => tag.attrs.href === "https://gohugo.io/"), flags.show_built_with);
     assert.equal(byClass(bottom, "template-credit").length, Number(flags.show_template_credit));
     assert.equal(byClass(bottom, "back-to-top").length, Number(flags.back_to_top));
@@ -120,7 +121,7 @@ test("无 RSS 输出时不留下空的联系分组，已有社交入口仍可用
     f.site.social = social; f.saveSite(); success(f);
     const home = read(f.root, "public/index.html");
     assert.equal(byClass(home, "hero__rss").length, 0);
-    assert.equal(byClass(home, "site-footer__rss").length, 0);
+    assert.equal(rssLinks(footer(home)).length, 0);
     assert.equal(byClass(home, "site-footer__connect").length, Number(social.length > 0));
   }
 }));
@@ -139,7 +140,7 @@ test("欢迎区不改文章地址、分页与订阅；子路径和草稿隔离�
   for (const path of ["index.html", "page/2/index.html"]) {
     const html = read(f.root, `public/${path}`), elements = tags(html);
     assert.equal(byClass(html, "hero__read")[0].attrs.href, "#recent-title");
-    assert.equal(byClass(html, "site-footer__rss")[0].attrs.href, "/journal/index.xml");
+    assert.equal(rssLinks(footer(html))[0].attrs.href, "/journal/index.xml");
     assert.ok(elements.some((tag) => tag.name === "a" && tag.attrs.href === "/journal/archive/"));
     const expectedPost = path === "index.html" ? "b" : "a";
     assert.ok(elements.some((tag) => tag.name === "a" && tag.attrs.href === `/journal/posts/${expectedPost}/`));
