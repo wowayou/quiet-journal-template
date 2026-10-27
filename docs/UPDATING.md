@@ -47,6 +47,10 @@ node scripts/core-upgrade.mjs apply   /可信的新核心目录                 
 
 从旧单文件配置迁移：把媒体/显示时区移入 `params.toml`，日期/渲染等移入对应核心分片，核对有效值与原配置一致；CMS repo/branch/publish_mode 移入 `data/editor.yaml`，原字段归入核心 schema 或显式扩展，再移除 `static/admin/config.yml`。不要留双份来源，直接 Hugo 与 npm 构建都能生成后台配置。
 
+## 2026-10-27.3：菜单限高滚动与键盘焦点
+
+更新 `assets/js/theme.js`、`assets/css/components.css`。收起的菜单新增 `max-height`、`overflow-y: auto`，高度由脚本写入页头上的 `--nav-space`；个人样式若给 `.nav-compact .site-nav` 设了固定高度或 `overflow: visible`，请去掉。设置无需迁移。
+
 ## 2026-10-27.2：页头一行放不下时收进菜单
 
 更新 `assets/js/theme.js`、`assets/css/components.css`、`layouts/_partials/header.html` 与 `footer.html`。菜单样式的条件从“`.js` + ≤ 40rem 媒体查询”改为 `html.nav-compact`（脚本在 ≤ 40rem 或一行放不下时添加）；个人样式若写过 `.js .site-nav` 等手机菜单规则，请改用 `.nav-compact .site-nav`。设置无需迁移。

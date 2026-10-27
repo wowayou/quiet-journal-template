@@ -186,6 +186,12 @@ html:not(.js) .site-header { position: static; }
   top: 100%;
   left: 0;
   right: 0;
+  /* 矮窗口（手机横屏、放大）里菜单不超出屏幕底部，放不下就在菜单内滚动。
+     --nav-space 由 theme.js 按页头实际底边计算；未计算时按动态视口减页头高度。 */
+  max-height: calc(100vh - var(--header-height));
+  max-height: var(--nav-space, calc(100dvh - var(--header-height)));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding-bottom: var(--space-3);
   background: var(--bg);
   border-bottom: 1px solid var(--line);

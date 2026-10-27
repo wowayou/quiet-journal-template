@@ -42,8 +42,8 @@ try {
   });
   const ev = browser.evaluate;
   const key = async (key, code) => {
-    await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key, code: key, windowsVirtualKeyCode: code, ...(key === "Enter" ? { text: "\r" } : {}) });
-    await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key, code: key, windowsVirtualKeyCode: code });
+    await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key, code: key === " " ? "Space" : key, windowsVirtualKeyCode: code, ...(key === "Enter" ? { text: "\r" } : key === " " ? { text: " " } : {}) });
+    await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key, code: key === " " ? "Space" : key, windowsVirtualKeyCode: code });
   };
   const until = async (expression) => { for (let i = 0; i < 80; i++) { if (await ev(expression)) return; await wait(100); } throw new Error(`等待超时：${expression}`); };
   const go = async (path = "/") => { await browser.send("Page.navigate", { url: server.url + path }); await until('document.readyState === "complete"'); await wait(200); };
@@ -138,13 +138,69 @@ try {
     ok(`${width}px：导航被翻译变长后收进菜单，页头保持一行、站名不折行、不横向溢出`, translated.compact && translated.height <= 73 && translated.titleOneLine && !translated.overflow);
     await ev("document.querySelector('[data-menu-toggle]').focus()"); await key("Enter", 13); await wait(250);
     ok(`${width}px：收进的菜单可用键盘打开，长导航都可见且不溢出`, await ev(`document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'true' && getComputedStyle(document.querySelector('#site-nav')).visibility === 'visible' && [...document.querySelectorAll('.site-nav a')].every((a) => { const r = a.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; }) && document.documentElement.scrollWidth <= innerWidth`));
+    ok(`${width}px：键盘打开后焦点在第一项导航`, await ev("document.activeElement === document.querySelector('.site-nav a')"));
+    // Tab walks every nav link in order, then the header buttons, then leaves the header and the menu closes.
+    const visited = [await ev("[...document.querySelectorAll('.site-nav a')].indexOf(document.activeElement)")];
+    for (let i = 0; i < 20 && await ev("!!document.activeElement.closest('.site-nav')"); i++) { await key("Tab", 9); visited.push(await ev("[...document.querySelectorAll('.site-nav a')].indexOf(document.activeElement)")); }
+    const navCount = await ev("document.querySelectorAll('.site-nav a').length");
+    ok(`${width}px：Tab 按顺序经过全部 ${navCount} 项导航`, visited.slice(0, navCount).every((index, i) => index === i) && visited[navCount] === -1);
+    for (let i = 0; i < 10 && await ev("!!document.activeElement.closest('.site-header')"); i++) await key("Tab", 9);
+    ok(`${width}px：焦点自然离开页头后菜单收起，不困住焦点`, await ev("!document.activeElement.closest('.site-header') && document.activeElement !== document.body && document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'false'"));
+    await ev("document.querySelector('[data-menu-toggle]').focus()"); await key(" ", 32); await wait(250);
+    ok(`${width}px：空格也能打开并进入导航`, await ev("document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'true' && document.activeElement === document.querySelector('.site-nav a')"));
     await key("Escape", 27);
     ok(`${width}px：菜单 Esc 收起并归还焦点`, await ev("document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'false' && document.activeElement.matches('[data-menu-toggle]')"));
+    await activate("[data-menu-toggle]"); await wait(250);
+    ok(`${width}px：鼠标打开时焦点留在按钮，不跳动`, await ev("document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'true' && document.activeElement.matches('[data-menu-toggle]')"));
+    await key("Escape", 27);
+    await ev("document.querySelector('[data-menu-toggle]').focus()");
+    await ev("document.querySelectorAll('[data-translated]').forEach((li) => li.remove())"); await nextFrames();
+    ok(`${width}px：菜单按钮在恢复一行时消失，焦点转到可见的导航项`, await ev("!document.documentElement.classList.contains('nav-compact') && !!document.activeElement.closest('.site-nav') && getComputedStyle(document.activeElement).visibility === 'visible' && document.activeElement.getClientRects().length > 0"));
+    await ev("document.querySelector('.site-nav li:last-child a').focus()"); await ev(translateHeader); await nextFrames();
+    ok(`${width}px：焦点所在的导航被自动收进菜单时，焦点交给菜单按钮而不是掉到页面`, await ev("document.documentElement.classList.contains('nav-compact') && document.activeElement.matches('[data-menu-toggle]')"));
+    await ev("document.querySelector('.hero__read').focus()"); await ev("document.querySelectorAll('[data-translated]').forEach((li) => li.remove())"); await nextFrames();
+    ok(`${width}px：布局切换不抢正文里的焦点`, await ev("!document.documentElement.classList.contains('nav-compact') && document.activeElement.matches('.hero__read')"));
+    await ev(translateHeader); await nextFrames();
     await ev("document.querySelector('[data-menu-toggle]').click()");
     await ev("document.querySelectorAll('[data-translated]').forEach((li) => li.remove())"); await nextFrames();
     const restored = await ev(headerState);
     ok(`${width}px：文字恢复后导航回到一行，展开的菜单同时收起`, !restored.compact && restored.rows === 1 && await ev("document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'false'"));
   }
+  // Short viewports (phone landscape, 200% zoom of 1280×900, small phone): the open menu stays on screen and scrolls inside.
+  const extraNav = `(() => { const ul = document.querySelector('.site-nav ul');
+    for (const label of ['Daily notes', 'Book reviews', 'Photo walks', 'Projects', 'Uses', 'Colophon']) { const li = document.createElement('li'); li.dataset.translated = ''; li.innerHTML = '<a href="/about/"><span>' + label + '</span></a>'; ul.append(li); } })()`;
+  for (const [width, height, touch] of [[844, 280, false], [640, 450, false], [320, 568, true]]) {
+    await browser.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: touch });
+    await browser.send("Emulation.setTouchEmulationEnabled", { enabled: touch });
+    await go(); await ev(translateHeader); await ev(extraNav); await nextFrames();
+    await ev("document.querySelector('[data-menu-toggle]').focus()"); await key("Enter", 13); await wait(300);
+    const menu = await ev(`(() => { const nav = document.querySelector('.site-nav'), r = nav.getBoundingClientRect(), header = document.querySelector('.site-header__bar').getBoundingClientRect();
+      return { open: document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'true', top: r.top, bottom: r.bottom, headerBottom: header.bottom, scrolls: nav.scrollHeight > nav.clientHeight + 1,
+        targets: [...nav.querySelectorAll('a')].every((a) => a.getBoundingClientRect().height >= 44), overflow: document.documentElement.scrollWidth > innerWidth }; })()`);
+    ok(`${width}×${height}：展开的菜单不超出屏幕底部，放不下时在菜单内滚动，触控区仍 ≥ 44px、不横向溢出`, menu.open && menu.bottom <= height + 1 && menu.top >= menu.headerBottom - 1 && menu.scrolls && menu.targets && !menu.overflow);
+    for (let i = 0; i < 30 && await ev("document.activeElement !== document.querySelector('.site-nav li:last-child a')"); i++) await key("Tab", 9);
+    await wait(100);
+    const reachable = `(() => { const a = document.querySelector('.site-nav li:last-child a'), r = a.getBoundingClientRect();
+      return r.top >= document.querySelector('.site-header__bar').getBoundingClientRect().bottom - 1 && r.bottom <= innerHeight + 1 && a.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); })()`;
+    ok(`${width}×${height}：Tab 到最后一项时它完整可见且点得到`, await ev("document.activeElement === document.querySelector('.site-nav li:last-child a')") && await ev(reachable));
+    await ev("document.querySelector('.site-nav').scrollTop = 0; scrollTo({ top: 0, behavior: 'instant' })"); await wait(50);
+    const center = await ev("(() => { const r = document.querySelector('.site-nav').getBoundingClientRect(); return { x: r.x + r.width / 2, y: Math.min(r.bottom - 20, r.y + r.height / 2) }; })()");
+    if (touch) {
+      // Real touch sequence (synthesizeScrollGesture does not drive emulated touch in headless Chromium).
+      await browser.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [center] });
+      for (let step = 1; step <= 30; step++) { await browser.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: center.x, y: center.y - step * 20 }] }); await wait(16); }
+      await browser.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    }
+    else await browser.send("Input.dispatchMouseEvent", { type: "mouseWheel", ...center, deltaX: 0, deltaY: 1200 });
+    await wait(400);
+    ok(`${width}×${height}：${touch ? "触控滑动" : "滚轮"}只滚动菜单、不带动页面，可以滚到末尾且最后一项可点`, await ev("document.querySelector('.site-nav').scrollTop > 0 && scrollY === 0") && await ev(reachable));
+    await key("Escape", 27); await wait(250);
+    await ev("scrollTo({ top: 0, behavior: 'instant' })");
+    const page = await ev("(() => { const r = document.querySelector('main').getBoundingClientRect(); return { x: innerWidth / 2, y: Math.min(innerHeight - 20, Math.max(r.top + 20, innerHeight / 2)) }; })()");
+    await browser.send("Input.dispatchMouseEvent", { type: "mouseWheel", ...page, deltaX: 0, deltaY: 400 }); await wait(600);
+    ok(`${width}×${height}：关闭菜单后正文正常滚动`, await ev("scrollY > 0 && getComputedStyle(document.querySelector('#site-nav')).visibility === 'hidden'"));
+  }
+  await browser.send("Emulation.setTouchEmulationEnabled", { enabled: false });
   await viewport(1280); await go();
   ok("站名与模板/生成器名称标为不翻译，其余文字仍可翻译", await ev(`document.querySelector('.site-title').translate === false && [...document.querySelectorAll('.site-footer__credits [translate=no]')].map((n) => n.textContent).join('|') === 'Hugo|Quiet Journal' && document.querySelector('.site-footer__credits a .visually-hidden')?.translate !== false && document.querySelector('.site-nav').translate !== false && document.documentElement.translate !== false`));
 
