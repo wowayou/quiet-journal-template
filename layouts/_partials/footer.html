@@ -19,8 +19,8 @@
       <p>© {{ if lt $since now.Year }}{{ $since }}–{{ end }}{{ now.Year }} {{ $site.author }}{{ with $f.content_license }} · {{ . }}{{ end }}</p>
       {{- if or $f.show_built_with $f.show_template_credit }}
       <div class="site-footer__credits">
-        {{- if $f.show_built_with }}{{ $link := partial "links/resolve.html" (dict "url" "https://gohugo.io/") }}<p>Built with <a {{ partial "links/attributes.html" $link | safeHTMLAttr }}>Hugo{{ partial "links/notice.html" $link }}</a></p>{{ end }}
-        {{- if $f.show_template_credit }}{{ $link := partial "links/resolve.html" (dict "url" "https://github.com/wowayou/quiet-journal-template") }}<p class="template-credit"><a {{ partial "links/attributes.html" $link | safeHTMLAttr }}>{{ partial "icon.html" (dict "name" "github" "size" 16) }}Quiet Journal{{ partial "links/notice.html" $link }}</a></p>{{ end }}
+        {{- if $f.show_built_with }}{{ $link := partial "links/resolve.html" (dict "url" "https://gohugo.io/") }}<p>Built with <a {{ partial "links/attributes.html" $link | safeHTMLAttr }}><span translate="no">Hugo</span>{{ partial "links/notice.html" $link }}</a></p>{{ end }}
+        {{- if $f.show_template_credit }}{{ $link := partial "links/resolve.html" (dict "url" "https://github.com/wowayou/quiet-journal-template") }}<p class="template-credit"><a {{ partial "links/attributes.html" $link | safeHTMLAttr }}>{{ partial "icon.html" (dict "name" "github" "size" 16) }}<span translate="no">Quiet Journal</span>{{ partial "links/notice.html" $link }}</a></p>{{ end }}
       </div>
       {{- end }}
     </div>

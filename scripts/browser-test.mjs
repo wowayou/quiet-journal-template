@@ -42,7 +42,7 @@ try {
   });
   const ev = browser.evaluate;
   const key = async (key, code) => {
-    await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key, code: key, windowsVirtualKeyCode: code });
+    await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key, code: key, windowsVirtualKeyCode: code, ...(key === "Enter" ? { text: "\r" } : {}) });
     await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key, code: key, windowsVirtualKeyCode: code });
   };
   const until = async (expression) => { for (let i = 0; i < 80; i++) { if (await ev(expression)) return; await wait(100); } throw new Error(`等待超时：${expression}`); };
@@ -117,6 +117,36 @@ try {
     await shot(`widgets-${width}`);
   }
   ok("首次打开不下载搜索索引", !requests.some((url) => url.includes("/search/")));
+
+  // Browser translation (or very long nav labels) can make the header too wide for one row.
+  // Simulate Chrome's translated <font> text in the header and check it folds into the menu instead of wrapping.
+  const headerState = `(() => { const h = document.querySelector('.site-header'), bar = document.querySelector('.site-header__bar'), title = document.querySelector('.site-title');
+    const lis = [...document.querySelectorAll('.site-nav li')];
+    return { compact: document.documentElement.classList.contains('nav-compact'), height: Math.round(h.getBoundingClientRect().height),
+      titleOneLine: title.getBoundingClientRect().height <= parseFloat(getComputedStyle(title).lineHeight) * 1.5 + 8,
+      rows: new Set(lis.map((li) => Math.round(li.getBoundingClientRect().top))).size, overflow: document.documentElement.scrollWidth > innerWidth }; })()`;
+  const translateHeader = `(() => { const ul = document.querySelector('.site-nav ul');
+    for (const label of ['Archive', 'Friendly links', 'Acknowledgments', 'Photography and travel notes']) {
+      const li = document.createElement('li'); li.dataset.translated = ''; li.innerHTML = '<a href="/about/"><span><font style="vertical-align: inherit;">' + label + '</font></span></a>'; ul.append(li); } })()`;
+  const nextFrames = () => ev("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
+  for (const width of [1280, 768]) {
+    await viewport(width); await go();
+    const original = await ev(headerState);
+    ok(`${width}px：原导航一行放得下时不收进菜单`, !original.compact && original.rows === 1 && original.height <= 73 && !await ev("getComputedStyle(document.querySelector('[data-menu-toggle]')).display !== 'none'"));
+    await ev(translateHeader); await nextFrames();
+    const translated = await ev(headerState);
+    ok(`${width}px：导航被翻译变长后收进菜单，页头保持一行、站名不折行、不横向溢出`, translated.compact && translated.height <= 73 && translated.titleOneLine && !translated.overflow);
+    await ev("document.querySelector('[data-menu-toggle]').focus()"); await key("Enter", 13); await wait(250);
+    ok(`${width}px：收进的菜单可用键盘打开，长导航都可见且不溢出`, await ev(`document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'true' && getComputedStyle(document.querySelector('#site-nav')).visibility === 'visible' && [...document.querySelectorAll('.site-nav a')].every((a) => { const r = a.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; }) && document.documentElement.scrollWidth <= innerWidth`));
+    await key("Escape", 27);
+    ok(`${width}px：菜单 Esc 收起并归还焦点`, await ev("document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'false' && document.activeElement.matches('[data-menu-toggle]')"));
+    await ev("document.querySelector('[data-menu-toggle]').click()");
+    await ev("document.querySelectorAll('[data-translated]').forEach((li) => li.remove())"); await nextFrames();
+    const restored = await ev(headerState);
+    ok(`${width}px：文字恢复后导航回到一行，展开的菜单同时收起`, !restored.compact && restored.rows === 1 && await ev("document.querySelector('[data-menu-toggle]').getAttribute('aria-expanded') === 'false'"));
+  }
+  await viewport(1280); await go();
+  ok("站名与模板/生成器名称标为不翻译，其余文字仍可翻译", await ev(`document.querySelector('.site-title').translate === false && [...document.querySelectorAll('.site-footer__credits [translate=no]')].map((n) => n.textContent).join('|') === 'Hugo|Quiet Journal' && document.querySelector('.site-footer__credits a .visually-hidden')?.translate !== false && document.querySelector('.site-nav').translate !== false && document.documentElement.translate !== false`));
 
   await viewport(1280); await go();
   for (let i = 0; i < 80 && !await ev("document.activeElement.matches('.hero__read')"); i++) await key("Tab", 9);

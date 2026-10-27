@@ -1,12 +1,13 @@
 {{- /*
   页头：站名在左、导航在右，当前页用波浪下划线；吸顶。
-  手机（≤ 40rem）导航收进三条线菜单；没有 JS 时导航直接显示。
+  手机（≤ 40rem）或一行放不下时（导航名很长、浏览器翻译、放大）导航收进三条线菜单；没有 JS 时导航直接显示。
+  站名是品牌，标 translate="no"，浏览器翻译时保持原样。
 */ -}}
 {{- $site := hugo.Data.site -}}
 {{- $current := .RelPermalink -}}
 <header class="site-header" data-header>
   <div class="site-header__bar wrap">
-    <a class="site-title" href="{{ site.Home.RelPermalink }}">{{ $site.title | default site.Title }}</a>
+    <a class="site-title" href="{{ site.Home.RelPermalink }}" translate="no">{{ $site.title | default site.Title }}</a>
     <nav class="site-nav" id="site-nav" aria-label="主导航">
       <ul>
         {{- range (partialCached "navigation.html" . "navigation").items }}

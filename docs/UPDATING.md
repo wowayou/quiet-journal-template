@@ -47,6 +47,10 @@ node scripts/core-upgrade.mjs apply   /可信的新核心目录                 
 
 从旧单文件配置迁移：把媒体/显示时区移入 `params.toml`，日期/渲染等移入对应核心分片，核对有效值与原配置一致；CMS repo/branch/publish_mode 移入 `data/editor.yaml`，原字段归入核心 schema 或显式扩展，再移除 `static/admin/config.yml`。不要留双份来源，直接 Hugo 与 npm 构建都能生成后台配置。
 
+## 2026-10-27.2：页头一行放不下时收进菜单
+
+更新 `assets/js/theme.js`、`assets/css/components.css`、`layouts/_partials/header.html` 与 `footer.html`。菜单样式的条件从“`.js` + ≤ 40rem 媒体查询”改为 `html.nav-compact`（脚本在 ≤ 40rem 或一行放不下时添加）；个人样式若写过 `.js .site-nav` 等手机菜单规则，请改用 `.nav-compact .site-nav`。设置无需迁移。
+
 ## 2026-10-27.1：网站状态不再公开未发布页面标识，升级写入更安全
 
 用 `node scripts/core-upgrade.mjs apply <新核心目录>` 应用。更新 `layouts/_partials/navigation.html`、`widgets/enabled.html`、`site/status.html` 与 `scripts/core-upgrade.mjs`。`/build.json` 的提示改为只写序号（“第 3 条导航”），导航名称、页面 ID、挂件 ID 只在构建日志里。个人扩展若读取这两个 partial 的 `.warnings` 并解析里面的名称，请改读构建日志。设置无需迁移。

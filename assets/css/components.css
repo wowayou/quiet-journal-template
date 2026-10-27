@@ -171,36 +171,43 @@ html:not(.js) .site-header { position: static; }
 .is-open .menu-toggle__bars span:nth-child(2) { opacity: 0; }
 .is-open .menu-toggle__bars span:nth-child(3) { top: 6px; transform: rotate(-45deg); }
 
+/* 无 JS 的窄屏：导航换到站名下一行常显。 */
 @media (max-width: 40rem) {
   html:not(.js) .site-header__bar { flex-wrap: wrap; }
   html:not(.js) .site-nav { order: 3; width: 100%; }
-
-  .js .menu-toggle { display: grid; }
-
-  .js .site-nav {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    padding-bottom: var(--space-3);
-    background: var(--bg);
-    border-bottom: 1px solid var(--line);
-    visibility: hidden;
-    opacity: 0;
-    translate: 0 -6px;
-    transition: opacity 200ms ease, translate 200ms var(--motion-ease), visibility 0s linear 200ms;
-  }
-
-  .js .is-open .site-nav {
-    visibility: visible;
-    opacity: 1;
-    translate: none;
-    transition: opacity 200ms ease, translate 200ms var(--motion-ease), visibility 0s;
-  }
-
-  .js .site-nav ul { flex-direction: column; align-items: center; gap: 0; }
-  .js .site-nav a { padding: 0.8rem var(--space-4); font-size: var(--text-lg); }
 }
+
+/* 收进菜单：theme.js 在窄屏（≤ 40rem）或页头一行放不下时加 .nav-compact。
+   按实际宽度判断，不识别“是否在翻译”，导航名很长、浏览器翻译或放大都一样。 */
+.nav-compact .menu-toggle { display: grid; }
+
+.nav-compact .site-nav {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding-bottom: var(--space-3);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  visibility: hidden;
+  opacity: 0;
+  translate: 0 -6px;
+  transition: opacity 200ms ease, translate 200ms var(--motion-ease), visibility 0s linear 200ms;
+}
+
+.nav-compact .is-open .site-nav {
+  visibility: visible;
+  opacity: 1;
+  translate: none;
+  transition: opacity 200ms ease, translate 200ms var(--motion-ease), visibility 0s;
+}
+
+.nav-compact .site-nav ul { flex-direction: column; align-items: center; gap: 0; }
+.nav-compact .site-nav a { padding: 0.8rem var(--space-4); font-size: var(--text-lg); }
+
+/* 量一行是否放得下时临时使用：不播放过渡，站名不折行。 */
+.nav-measuring .site-header *, .nav-measuring .site-header *::before { transition: none !important; }
+.nav-measuring .site-title { white-space: nowrap; }
 
 /* ---------- 首页：无卡片；宽屏文字左、线描右，窄屏线描在上 ---------- */
 .hero {
