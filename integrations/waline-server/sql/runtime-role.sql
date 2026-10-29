@@ -1,7 +1,9 @@
 -- Original deployment policy, not a replacement for Waline's pinned schema.
 -- Run as the database owner ONLY in the dedicated comments database.
--- First create waline_app through SQL (not a Neon superuser role), then set its
--- password privately with psql \password. No password belongs in this file.
+-- First create waline_app through SQL (not a Neon superuser role).
+-- Neon needs the original password over verified TLS; psql \password pre-hashes
+-- it and cannot initialize it there. Use a private interactive client (README).
+-- No password belongs in this file.
 BEGIN;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO waline_app;

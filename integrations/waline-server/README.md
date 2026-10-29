@@ -1,13 +1,13 @@
 # Waline + Vercel Hobby + Neon Free：独立服务候选
 
-**状态（2026-10-29）：本次新增依赖告警已用兼容补丁处理，管理端对应源码和离线重建已验证；云端尚未创建或部署。** 新增运行费目标仍为 0 元/月、不发邮件、不依赖 Oracle。测试和 0 项审计不等于正式上线许可；此目录不进入 Hugo 构建、静态评论面板或内容导出。
+**状态（2026-10-29）：本次新增依赖告警已用兼容补丁处理，管理端对应源码和离线重建已验证；独立云端服务与完整评论链路尚未验收。** 新增运行费目标仍为 0 元/月、不发邮件、不依赖 Oracle。测试和 0 项审计不等于正式上线许可；此目录不进入 Hugo 构建、静态评论面板或内容导出。
 
 博客侧说明见 [COMMENTS.md](../../docs/COMMENTS.md)，读者面板仍是 [`../waline/`](../waline/README.md)。服务使用 Waline 1.43.4 的显式精简分发，管理端从 0.36.0 准确源码重建，`pg` 固定 8.23.1。两个本地安装包、源码归档及其哈希位于 `vendor/`；不是重写账号和数据库，也不再直接安装原始全功能包。
 
 ## 先看尚未完成的上线验收
 
-1. **账户未验收**：本机没有 Vercel/Neon 登录凭据，尚未确认你的实际套餐、额度、地区或已有项目。只选择个人非商业的 Vercel Hobby 与 Neon Free；不选 Pro 试用、Launch、付费附加服务，也不绑定自动升级。不把密码、数据库 URL 或访问令牌发到聊天、Git 或博客配置里。
-2. **生产验收未完成**：Vercel 文件追踪/函数包体积与冷启动、实际 Neon 证书链、平台代理 IP、额度耗尽、备份保管及 iPhone/Safari 都仍要验收。管理端 Chromium 注册/登录/审核/回复仅在本机合成数据库完成；下面是待执行云端流程，不是已经完成的线上操作。
+1. **账户需逐站核验**：模板不包含 Vercel/Neon 登录凭据，也不能证明你的实际套餐、额度、地区或已有项目。数据库已创建或本机连接成功，不等于评论服务已部署；按实际操作者的验收记录区分进度。只选择个人非商业的 Vercel Hobby 与 Neon Free；不选 Pro 试用、Launch、付费附加服务，也不绑定自动升级。不把密码、数据库 URL 或访问令牌发到聊天、Git 或博客配置里。
+2. **生产验收未完成**：Vercel 文件追踪/函数包体积与冷启动、Vercel 运行时连接 Neon 的实际证书链、平台代理 IP、额度耗尽、备份保管及 iPhone/Safari 都仍要验收。管理端 Chromium 注册/登录/审核/回复仅在本机合成数据库完成；下面是待执行云端流程，不是已经完成的线上操作。
 
 2026-10-16 的原 16 项依赖告警通过移除不用的适配器/依赖链处理。2026-10-29 复核又发现运行树 4 个受影响包项及管理端构建工具 Vite 告警：现仅为 Waline 固定 DOMPurify 3.4.17、markdown-it 15.0.3、Nodemailer 10.1.4（含必要的 argparse 补丁），对应源码重建工具 Vite 固定 8.2.4；未降级，未放宽审核/限长/禁发信边界。运行树及管理端完整构建树本次审计均为 0。准确上游 README 和随包许可均为 GPL-2.0，因此按该许可交付组件源码，而不是沿用 MIT 元数据；管理端源码归档可离线重建出与实际服务完全相同的脚本。处理方法、维护代价及许可边界见 [UPSTREAM.md](UPSTREAM.md)，以后升级仍需重新审查。
 
@@ -119,15 +119,21 @@ QJ_CHROMIUM=/path/to/chrome npm run test:admin
 CREATE ROLE waline_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT;
 ```
 
-在受保护的 `psql` 会话用 `\password waline_app` 设置独立随机口令，不把口令写进 SQL 文件、命令参数或聊天。随后依次执行 [`sql/indexes.sql`](sql/indexes.sql) 和 [`sql/runtime-role.sql`](sql/runtime-role.sql)：添加查询索引和单账号唯一约束、仅授予三张表的读写和序列使用；运行角色不是表所有者，不能改表/创建数据库。**不能省略索引文件后只凭应用层 count 检查防止并发注册。** 本方案只允许一个作者账号；若已有多账号数据，应停止并另行设计迁移，不为通过约束而删除账号。
+先依次执行 [`sql/indexes.sql`](sql/indexes.sql) 和 [`sql/runtime-role.sql`](sql/runtime-role.sql)：添加查询索引和单账号唯一约束、仅授予三张表的读写和序列使用；运行角色不是表所有者，不能改表/创建数据库。**不能省略索引文件后只凭应用层 count 检查防止并发注册。** 本方案只允许一个作者账号；若已有多账号数据，应停止并另行设计迁移，不为通过约束而删除账号。
+
+**Neon 首次密码设置的限制（2026-10-29 实测及官方文档复核）：** 无密码角色不能用控制台 Reset password 首次设置；`psql \password` 会在客户端生成 SCRAM（Salted Challenge Response Authentication Mechanism，加盐质询响应认证机制）校验值，Neon 不接受预先哈希的密码。不要反复重置、删除重建角色，或为兼容而改用所有者账号部署。
+
+应使用可信的本地交互式客户端隐藏读取独立随机密码，在内存中构造 `ALTER ROLE waline_app PASSWORD ...`，通过验证证书和主机名的 TLS 连接提交原始密码；**不是明文网络传输**，但 Neon 必须接收原始值，本地工具不能保证云平台内部日志行为。事前确认此信任边界及目标，事后以 `waline_app` 核验实际最小权限和只读连接。设置密码的本地工具不将密码写入文件、环境变量、进程参数、聊天或 SQL Editor 历史；不得打印含密码的 SQL/驱动错误。服务运行所需凭据另存平台的秘密环境设置，不混入本地设置工具的日志或命令行。请求超时或断线后先只读核对实际状态，不自动重发。设置完成后，控制台 Reset password 才是可另行授权的轮换路径。依据：[Neon 角色管理](https://neon.com/docs/manage/roles)。
+
+`openssl rand -hex 32` 生成 **32 字节（256 比特）随机数据，输出为 64 个十六进制字符**，不是 64 比特；每种凭据单独生成，妥善保存。
 
 运行服务使用运行角色的 **pooled** URL；所有者/备份使用独立保存的 **direct** URL。所有者连接绝不放进 Vercel 或读者面板。不要假设 SQL 中的运行角色也能为你完成将来的模式迁移；升级需所有者另行授权。
 
 ### 3. 受保护的服务初始化
 
-1. Vercel 项目根目录只能是本目录，不能上传博客、文章或面板。使用 `vercel.json` 中的安装方式；暂不连接自动 Git 部署。线上函数追踪及包大小还须验收。
-2. 初始保持 `WALINE_MODE=locked`，并开启平台 [Vercel Authentication](https://vercel.com/docs/deployment-protection/methods-to-protect-deployments/vercel-authentication) 保护。确认所需保护范围在 Hobby 实际可用，不为此购买密码保护附加服务。不要给真实数据库设置公开预览环境变量。
-3. 将 `.env.example` 中专用配置填入 Vercel 的秘密设置；真实 URL/口令不提交。JWT 与设置口令各自用密码管理器或 `openssl rand -hex 32` 生成，不复用数据库口令。`.env.local` 只用于必要本地操作，权限 600。
+1. Vercel 项目根目录只能是本目录，不能上传私有博客、文章或读者面板。使用 `vercel.json` 中的安装方式；暂不连接自动 Git 部署。若用控制台导入 Git，应只选择不含私人内容的服务仓库或公开模板，将 Root Directory（构建根目录）设为 `integrations/waline-server`；平台会读取所选的整个仓库，不要选择存放私有文章的实例仓库。线上函数追踪及包大小还须验收。
+2. 初始保持 `WALINE_MODE=locked`（锁定，不启动数据库连接）；此阶段不填数据库或作者初始化秘密。开启平台 [Vercel Authentication](https://vercel.com/docs/deployment-protection/methods-to-protect-deployments/vercel-authentication) 保护。选择 **All Deployments（所有部署）**，覆盖预览和正式域名，不能把 Standard Protection（正式域名除外）当作全保护。2026-10-29 官方复核：Hobby 的 Vercel Authentication 全保护不需付费附加服务；不要购买另一个名为 Password Protection 的密码保护功能。部署前在本人控制台核实设置，并使用与数据库相近的单一函数地区，不加付费多区/故障转移。不要给真实数据库设置公开预览环境变量。
+3. 将 `.env.example` 中专用配置填入 Vercel 的秘密设置；真实 URL/口令不提交。JWT（JSON Web Token，JSON 格式的登录令牌）用于验证作者身份；`WALINE_JWT_TOKEN` 保存的是签名密钥，不是浏览器登录令牌。签名密钥与临时设置口令各自用密码管理器或 `openssl rand -hex 32` 生成，不复用数据库口令。`.env.local` 只用于必要本地操作，权限 600。
 4. 经发布授权后，在保护仍有效时改成 `bootstrap`。浏览器使用临时 HTTP Basic `setup` + 设置口令，访问 `/ui/register` 创建作者账号。确认 `wl_users` 只有一个正确的 `administrator`，保存作者强密码。
 5. 将模式改为 `public`、删除 `WALINE_SETUP_PASSWORD`，保留平台保护；先结束设置用的独立浏览器会话，避免残留 HTTP Basic 认证，再验证作者登录和管理端。随后再经过公开服务授权，按实际托管条件完成匿名请求测试；**不能把平台绕过令牌放入静态面板**。保护或删除旧 bootstrap 部署，避免遗留入口。
 6. 逐项验收待审核不可见、作者审核/回复、未授权修改失败、限速/配额、没有意外第三方请求，以及错误/超时不重发。后台强密码恢复与双因素认证也须单独核验；无邮件恢复尚不能视为已完成。

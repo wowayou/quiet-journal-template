@@ -2,7 +2,7 @@
 
 一个安静、易于修改的个人生活博客模板，基于 Hugo。博客本体没有数据库，不需要服务器或统计脚本，默认只加载同源资源。可选免登录评论由隔离的面板和独立服务提供，读者主动加载后才连接。
 
-> 当前核心 `2026-10-29.1`。更新日志见 [CHANGELOG.md](CHANGELOG.md)；已有站点更新前请读 [UPDATING.md](docs/UPDATING.md)。可选评论与邮件默认关闭，真实服务及 Safari/iPhone 新交互需各自验收。
+> 当前核心 `2026-10-29.2`。更新日志见 [CHANGELOG.md](CHANGELOG.md)；已有站点更新前请读 [UPDATING.md](docs/UPDATING.md)。可选评论与邮件默认关闭，真实服务及 Safari/iPhone 新交互需各自验收。
 
 ## 用这个模板建站
 

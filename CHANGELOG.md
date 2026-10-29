@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-29 — Neon 首次密码与 Vercel 保护说明纠错
+
+- 核心 `2026-10-29.2`，仅改文档和 SQL 注释，不改变程序、SQL 执行内容、依赖或实例设置。
+- 纠正 `psql \password` 和控制台 Reset 用于 Neon 无密码角色首次设置的错误指导；明确原始密码经验证 TLS 传输、私密交互输入、平台日志信任边界和失败后不盲目重发。无需重建库或重置已成功设置的密码。
+- 解释 32 字节 → 256 比特 → 64 个十六进制字符、JWT 登录令牌与签名密钥；Vercel 初次 locked 部署不填数据库秘密，选择免费的 Vercel Authentication + All Deployments 全保护。
+
 ## 2026-10-29 — 评论依赖安全补丁，保持默认关闭
 
 - 仅在独立 Waline 服务范围内固定 DOMPurify 3.4.17、markdown-it 15.0.3、Nodemailer 10.1.4；更新 markdown-it 要求的 argparse 补丁，不升级其他运行依赖。原有审核、限长、严格 TLS、禁发信及隔离边界不变。
