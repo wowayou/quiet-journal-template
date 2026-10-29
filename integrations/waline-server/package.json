@@ -13,6 +13,13 @@
     "backup": "node scripts/backup.cjs",
     "audit:dependencies": "npm audit --omit=dev"
   },
+  "overrides": {
+    "@waline/vercel": {
+      "dompurify": "3.4.17",
+      "markdown-it": "15.0.3",
+      "nodemailer": "10.1.4"
+    }
+  },
   "dependencies": {
     "@waline/admin": "file:vendor/waline-admin-0.36.0-qj.1.tgz",
     "@waline/vercel": "file:vendor/waline-vercel-1.43.4-qj.1.tgz",

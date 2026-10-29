@@ -157,7 +157,7 @@ module.exports = function disabledUserAgent() {
     expected['scripts'] = {'build': 'NODE_ENV=production vite build'}
     expected['private'] = True
     expected['devDependencies'] = dict(upstream_package['devDependencies'])
-    expected['devDependencies'].update({'@vitejs/plugin-react': '6.1.2', 'vite-plugin-css-injected-by-js': '5.0.2', 'vite-plugin-svgr': '5.2.0', '@babel/runtime': '8.0.0', 'vite': '8.2.2'})
+    expected['devDependencies'].update({'@vitejs/plugin-react': '6.1.2', 'vite-plugin-css-injected-by-js': '5.0.2', 'vite-plugin-svgr': '5.2.0', '@babel/runtime': '8.0.0', 'vite': '8.2.4'})
     if json.loads((build / 'package.json').read_bytes()) != expected:
         raise ValueError('Admin build manifest was changed')
     config = source['packages/admin/vite.config.ts'].replace(b'  build: {\n', b"  build: {\n    sourcemap: 'hidden',\n")
@@ -204,7 +204,7 @@ module.exports = function disabledUserAgent() {
     admin_sources['waline-admin-source/README.txt'] = (
         f'Waline admin 0.36.0 application source: {ADMIN_COMMIT}. GPL-2.0; see admin/LICENSE and upstream-build/README.md.\n'
         'This is a disclosed rebuild, not the unmodified npm admin.js. Application source was not edited.\n'
-        'Build changes: isolated npm manifest/lock, @vitejs/plugin-react 6.1.2, hidden source map.\n'
+        'Build changes: isolated npm manifest/lock, @vitejs/plugin-react 6.1.2, Vite 8.2.4, hidden source map.\n'
         'From admin/: npm ci --ignore-scripts --no-audit --no-fund; npm run build (Node 24).\n'
         f'Expected dist/admin.js SHA-256: {ADMIN_JS_SHA}\n'
         'No GitHub Actions, cloud account, release command or runtime source-map URL is needed.\n'

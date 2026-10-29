@@ -68,10 +68,13 @@ test('disabled UA keeps the required empty serialization shape and cannot be ena
 test('source archives include preferred source, locked rebuild inputs and third-party licenses, not private service settings', () => {
   const vendor = readVendor(), admin = unpack(vendor.adminSource), server = unpack(vendor.serverSource);
   assert.ok(server.has('waline-server-source/upstream-build/packages/core/src/core.ts'));
-  assert.ok(server.has('waline-server-source/prepare-vendor.py'));
+  assert.deepEqual(server.get('waline-server-source/prepare-vendor.py'), readFileSync(join(__dirname, '../scripts/prepare-vendor.py')));
   assert.match(server.get('waline-server-source/server/LICENSE').toString(), /GNU GENERAL PUBLIC LICENSE/);
   assert.ok(admin.has('waline-admin-source/admin/src/index.jsx'));
-  assert.ok(admin.has('waline-admin-source/admin/package-lock.json'));
+  const buildPackage = JSON.parse(admin.get('waline-admin-source/admin/package.json'));
+  const buildLock = JSON.parse(admin.get('waline-admin-source/admin/package-lock.json'));
+  assert.equal(buildPackage.devDependencies.vite, '8.2.4');
+  assert.equal(buildLock.packages['node_modules/vite'].version, '8.2.4');
   assert.match(admin.get('waline-admin-source/admin/vite.config.ts').toString(), /sourcemap: 'hidden'/);
   assert.match(admin.get('waline-admin-source/admin/LICENSE').toString(), /GNU GENERAL PUBLIC LICENSE/);
   assert.ok(admin.has('waline-admin-source/third-party/react/LICENSE'));

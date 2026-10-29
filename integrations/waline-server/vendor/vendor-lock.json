@@ -12,12 +12,12 @@
       "sha256": "5f2d41a10e2e0b5ba1e30a977dc1c22cb36db9e8c50a67f8b0b3fd2979bcf543"
     },
     "waline-server-source-1.43.4.tar.gz": {
-      "bytes": 297571,
-      "sha256": "8741468061d4b51a380207dac09f32973d5be8245ff8005df749dff4598cf80d"
+      "bytes": 297577,
+      "sha256": "932007b3387fd4ba422d1af1ac37acf2d38994f54b1de94807e5b7b4d37328ee"
     },
     "waline-admin-source-0.36.0.tar.gz": {
-      "bytes": 3622731,
-      "sha256": "658ac62b1b432c2ce887d46385d30ce5781a1999cdcdd440526ce4f187cd2b62"
+      "bytes": 3622743,
+      "sha256": "a8c47a70dd72752f08dae4256e734bb3b16a897dbc74513842a4e4678688759d"
     }
   }
 }

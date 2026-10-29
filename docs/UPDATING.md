@@ -47,6 +47,12 @@ node scripts/core-upgrade.mjs apply   /可信的新核心目录                 
 
 从旧单文件配置迁移：把媒体/显示时区移入 `params.toml`，日期/渲染等移入对应核心分片，核对有效值与原配置一致；CMS repo/branch/publish_mode 移入 `data/editor.yaml`，原字段归入核心 schema 或显式扩展，再移除 `static/admin/config.yml`。不要留双份来源，直接 Hugo 与 npm 构建都能生成后台配置。
 
+## 2026-10-29.1：评论服务依赖安全补丁（不自动开通）
+
+仅维护独立评论服务：服务根清单/锁文件固定 DOMPurify 3.4.17、markdown-it 15.0.3、Nodemailer 10.1.4 和必要的 argparse 补丁；管理端对应源码重建工具 Vite 更新到 8.2.4。上游精简包、管理端 JS/source map、博客与读者面板行为不变。两个源码归档、vendor 哈希、再生成脚本及安全回归一起更新，不能仅拷贝 vendor 而遗漏服务根 overrides。审查说明见 [UPSTREAM.md](../integrations/waline-server/UPSTREAM.md)。
+
+按固定核心流程应用，保留评论开关、私密环境、项目关联、域名与数据库；在服务目录重新 `npm ci --ignore-scripts --no-audit --no-fund`、`npm test`，分别核查运行树和源码完整构建树审计，实际服务仍需数据库/管理端/面板验收。没有配置迁移，也不会自动推送、部署、初始化数据库或发信。未开通者保持关闭，既有服务升级须先备份并另行确认发布窗口。
+
 ## 2026-10-27.3：菜单限高滚动与键盘焦点
 
 更新 `assets/js/theme.js`、`assets/css/components.css`。收起的菜单新增 `max-height`、`overflow-y: auto`，高度由脚本写入页头上的 `--nav-space`；个人样式若给 `.nav-compact .site-nav` 设了固定高度或 `overflow: visible`，请去掉。设置无需迁移。
