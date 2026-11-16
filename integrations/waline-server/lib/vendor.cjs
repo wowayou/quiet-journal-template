@@ -3,6 +3,7 @@
 const { readFileSync, lstatSync } = require('node:fs');
 const { join } = require('node:path');
 const { createHash } = require('node:crypto');
+const { failure } = require('./diagnostics.cjs');
 
 const PROFILE = 'postgres-no-external-v1';
 const FILES = [
@@ -13,13 +14,13 @@ const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 function readVendor(root = join(__dirname, '../vendor')) {
   const lock = JSON.parse(readFileSync(join(root, 'vendor-lock.json'), 'utf8'));
-  if (lock.version !== 1 || lock.profile !== PROFILE || !/^[a-f0-9]{64}$/.test(lock.adminSha256 || '') || !lock.files || Object.keys(lock.files).length !== FILES.length || FILES.some((name) => !Object.hasOwn(lock.files, name))) throw new Error('Unexpected vendor manifest.');
+  if (lock.version !== 1 || lock.profile !== PROFILE || !/^[a-f0-9]{64}$/.test(lock.adminSha256 || '') || !lock.files || Object.keys(lock.files).length !== FILES.length || FILES.some((name) => !Object.hasOwn(lock.files, name))) throw failure('VENDOR', 'VENDOR_MANIFEST', 'Unexpected vendor manifest.');
   const files = {};
   for (const name of FILES) {
     const file = join(root, name), actual = lstatSync(file), expected = lock.files[name];
-    if (!actual.isFile() || actual.size > 4 * 1024 * 1024 || actual.size !== expected.bytes) throw new Error(`Vendor size/type mismatch: ${name}`);
+    if (!actual.isFile() || actual.size > 4 * 1024 * 1024 || actual.size !== expected.bytes) throw failure('VENDOR', 'VENDOR_FILE_METADATA', `Vendor size/type mismatch: ${name}`);
     const bytes = readFileSync(file);
-    if (digest(bytes) !== expected.sha256) throw new Error(`Vendor integrity mismatch: ${name}`);
+    if (digest(bytes) !== expected.sha256) throw failure('VENDOR', 'VENDOR_INTEGRITY', `Vendor integrity mismatch: ${name}`);
     files[name] = bytes;
   }
   return {

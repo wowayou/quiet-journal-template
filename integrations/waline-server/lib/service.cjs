@@ -4,6 +4,7 @@ const { readFileSync } = require('node:fs');
 const { dirname, join } = require('node:path');
 const { boundary, validation, validateReply } = require('./policy.cjs');
 const { readVendor, digest } = require('./vendor.cjs');
+const { failure, atStage } = require('./diagnostics.cjs');
 let initialized = false;
 
 function strictModel(database) {
@@ -19,10 +20,10 @@ function strictModel(database) {
 }
 
 function createService(config) {
-  if (initialized) throw new Error('Run only one isolated Waline instance per process.');
-  const vendor = readVendor();
-  const serverPackage = require('@waline/vercel/package.json');
-  if (serverPackage.version !== '1.43.4' || serverPackage.quietJournalProfile !== vendor.profile) throw new Error('Unexpected Waline server version/profile.');
+  if (initialized) throw failure('SERVICE_INIT', 'ALREADY_INITIALIZED', 'Run only one isolated Waline instance per process.');
+  const vendor = atStage('VENDOR', readVendor);
+  const serverPackage = atStage('SERVER_PACKAGE', () => require('@waline/vercel/package.json'));
+  if (serverPackage.version !== '1.43.4' || serverPackage.quietJournalProfile !== vendor.profile) throw failure('SERVER_PACKAGE', 'SERVER_CONTRACT', 'Unexpected Waline server version/profile.');
   // The loader persists its initial env-derived config in /tmp/runtime.
   // Only a public selector is given to that loader; credentials are supplied
   // through the custom model and jwtKey, not PG_PASSWORD or JWT_TOKEN.
@@ -34,12 +35,13 @@ function createService(config) {
     DISABLE_USERAGENT: 'true', DISABLE_REGION: 'true',
     MARKDOWN_TEX: 'false', MARKDOWN_HIGHLIGHT: 'false',
   });
-  const Waline = require('@waline/vercel');
-  const middleware = require('@waline/vercel/src/config/middleware.js');
+  const Waline = atStage('SERVER_LOAD', () => require('@waline/vercel'));
+  const middleware = atStage('MIDDLEWARE', () => require('@waline/vercel/src/config/middleware.js'));
   // Deliberate, version-bound middleware configuration, before Waline loads it.
   // Do not silently continue if an upstream upgrade changes these boundaries.
+  if (!Array.isArray(middleware)) throw failure('MIDDLEWARE', 'MIDDLEWARE_CONTRACT', 'Waline middleware contract changed.');
   for (const name of ['fetch-oauth-service', 'dashboard', 'version', 'meta', 'payload', 'trace']) {
-    if (middleware.filter((item) => item?.handle === name).length !== 1) throw new Error('Waline middleware contract changed.');
+    if (middleware.filter((item) => item?.handle === name).length !== 1) throw failure('MIDDLEWARE', 'MIDDLEWARE_CONTRACT', 'Waline middleware contract changed.');
   }
   for (const item of middleware) {
     // The version header triggers an automatic npm-registry fetch in admin.
@@ -58,19 +60,22 @@ function createService(config) {
       },
     };
   }
-  const adminEntry = require.resolve('@waline/admin');
-  const adminRoot = dirname(dirname(adminEntry));
-  const adminPackage = JSON.parse(readFileSync(join(adminRoot, 'package.json'), 'utf8'));
-  const admin = readFileSync(adminEntry);
-  if (adminPackage.version !== '0.36.0' || adminPackage.quietJournalBuild?.sha256 !== vendor.adminSha256 || digest(admin) !== vendor.adminSha256) throw new Error('Unexpected Waline admin build.');
-  middleware.unshift({ handle: () => boundary(config, {
-    admin, license: readFileSync(join(adminRoot, 'LICENSE'), 'utf8'),
-    adminSource: vendor.adminSource, serverSource: vendor.serverSource,
-    css: readFileSync(join(__dirname, '../assets/admin.css'), 'utf8'),
-    avatar: readFileSync(join(__dirname, '../assets/avatar.svg'), 'utf8'),
-    ownLicense: readFileSync(join(__dirname, '../LICENSE'), 'utf8'),
-  }) });
-  const handler = Waline({
+  const resources = atStage('ADMIN_ASSETS', () => {
+    const adminEntry = require.resolve('@waline/admin');
+    const adminRoot = dirname(dirname(adminEntry));
+    const adminPackage = JSON.parse(readFileSync(join(adminRoot, 'package.json'), 'utf8'));
+    const admin = readFileSync(adminEntry);
+    if (adminPackage.version !== '0.36.0' || adminPackage.quietJournalBuild?.sha256 !== vendor.adminSha256 || digest(admin) !== vendor.adminSha256) throw failure('ADMIN_ASSETS', 'ADMIN_INTEGRITY', 'Unexpected Waline admin build.');
+    return {
+      admin, license: readFileSync(join(adminRoot, 'LICENSE'), 'utf8'),
+      adminSource: vendor.adminSource, serverSource: vendor.serverSource,
+      css: readFileSync(join(__dirname, '../assets/admin.css'), 'utf8'),
+      avatar: readFileSync(join(__dirname, '../assets/avatar.svg'), 'utf8'),
+      ownLicense: readFileSync(join(__dirname, '../LICENSE'), 'utf8'),
+    };
+  });
+  middleware.unshift({ handle: () => boundary(config, resources) });
+  const handler = atStage('SERVICE_INIT', () => Waline({
     jwtKey: config.jwtKey, model: strictModel(config.database),
     audit: true, disableUserAgent: true, disableRegion: true,
     // boundary() owns exact-origin CORS and authenticated administration.
@@ -81,7 +86,7 @@ function createService(config) {
     avatarUrl: () => `${config.apiOrigin}/avatar.svg`,
     plugins: [{ middlewares: [validation(config)] }],
     preSave: validateReply,
-  });
+  }));
   initialized = true;
   return handler;
 }

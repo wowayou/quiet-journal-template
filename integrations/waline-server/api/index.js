@@ -1,16 +1,27 @@
 'use strict';
 
-const { mode, settings } = require('../lib/settings.cjs');
+const { diagnosticLine } = require('../lib/diagnostics.cjs');
 let service;
 
 module.exports = async function comments(req, res) {
+  let stage = 'SETTINGS_LOAD';
   try {
+    const { mode, settings } = require('../lib/settings.cjs');
+    stage = 'MODE';
     if (mode() !== 'locked') {
-      if (!service) service = require('../lib/service.cjs').createService(settings());
+      if (!service) {
+        stage = 'SERVICE_LOAD';
+        const { createService } = require('../lib/service.cjs');
+        stage = 'SETTINGS';
+        const config = settings();
+        stage = 'SERVICE_INIT';
+        service = createService(config);
+      }
+      stage = 'REQUEST';
       return await service(req, res);
     }
-  } catch {
-    console.error('[waline] service configuration or initialization failed; details suppressed.');
+  } catch (error) {
+    console.error(diagnosticLine(stage, error));
   }
   if (res.headersSent) { res.end(); return; }
   res.writeHead(503, {

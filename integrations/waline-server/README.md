@@ -47,6 +47,23 @@ TLS（Transport Layer Security，传输层安全）同时校验受信证书链�
 - 拒绝全局 `NODE_TLS_REJECT_UNAUTHORIZED=0`。本地测试只给测试子进程加入临时测试 CA（Certificate Authority，证书颁发机构），从不跳过证书验证。
 - 上游初始配置会写入临时目录。本封装只给其环境配置提供公开的数据库选择标记，真实凭据通过模型工厂/`jwtKey` 注入，不写入该初始配置文件。错误响应不含堆栈/SQL；日志只保留错误代码。
 
+### 入口失败的安全诊断（本地实现，不代表已部署）
+
+入口捕获异常时，客户端仍只得到原通用 503、`no-store` 和“不自动重试”提示，不返回阶段或配置细节。平台日志保留原固定前缀，只附加两个白名单字段，例如：
+
+```text
+[waline] service configuration or initialization failed; details suppressed. stage=SETTINGS reason=DATABASE_TLS_OPTIONS
+```
+
+- `MODE` / `SETTINGS`：模式和配置校验。原因码可区分 `MODE_INVALID`、三源格式/重复、`JWT_FORMAT`、`SETUP_FORMAT`、`SECRET_REUSE`、`SETUP_PRESENT_IN_PUBLIC`、`DATABASE_URL_INVALID` / `DATABASE_URL_INCOMPLETE` / `DATABASE_TLS_OPTIONS`、`TLS_BYPASS`、`CONFIG_CONFLICT`。后者不输出任意冲突变量名或其值。
+- `SETTINGS_LOAD` / `SERVICE_LOAD` / `SERVER_LOAD`：配置模块、封装或上游模块加载。
+- `VENDOR` / `SERVER_PACKAGE` / `MIDDLEWARE` / `ADMIN_ASSETS`：分发清单、版本契约、中间件和管理端文件/哈希。`VENDOR_MANIFEST` / `VENDOR_FILE_METADATA` / `VENDOR_INTEGRITY`、`SERVER_CONTRACT`、`MIDDLEWARE_CONTRACT`、`ADMIN_INTEGRITY` 不会放宽原拒绝条件。
+- `SERVICE_INIT` / `REQUEST`：创建服务或调用处理器。再次创建同一实例为 `ALREADY_INITIALIZED`；未识别的异常原因保持 `UNKNOWN`。只有少量明确错误码映射为 `MODULE_MISSING`、`FILE_MISSING`、`FILE_DENIED`，不输出缺失模块名、文件路径或任意异常 code。
+
+这些字段仅描述捕获边界/已知校验结果，不一定等于底层根因。诊断器不序列化异常原文、堆栈、cause、环境变量、连接串或 SQL；不增加公开诊断端点，不改变认证、严格 TLS、固定版本/哈希、数据库权限或默认 locked。上游/平台自身的日志仍须独立核对，不把本封装的过滤范围夸大为所有日志绝无秘密。正常 locked 不输出失败诊断；正常 bootstrap 未提供临时认证时仍应得到带 `Waline setup` 挑战的 401，不代表数据库健康。
+
+排障先固定同一 Deployment ID（部署唯一标识）、发生时间与可见请求 ID，只收阶段/原因行，不上传 Request Headers、Cookie、完整环境或部署包。固定 `UNKNOWN` 时如实保留未知，不开放日志原文、关闭 TLS、批准无关安装脚本或自动重复部署来取代诊断。项目当前环境设置也不自动等于已部署产物的配置快照；Secret 无法查看时标为未核验，不要求重填/重置来试错。`npm test` 包含全合成的配置/资源/处理失败注入和泄密反例，不需要真实凭据、数据库或云请求。提交、推送和上线仍须另行确认；仅本地修改不能定位尚未采集该诊断的线上故障。
+
 ### 匿名留言、管理与外部请求
 
 - `WALINE_MODE` 默认为 `locked`，返回 503，不启动数据库连接。只能显式选择 `bootstrap` 或 `public`。
